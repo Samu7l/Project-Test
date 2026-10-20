@@ -1,0 +1,10 @@
+# Python 3.12 — conda env "stapp26"
+streamlit==1.66.0
+pandas==3.0.6
+numpy==2.5.4
+pyarrow==26.0.0
+plotly==7.1.0
+pydeck==0.9.3
+openpyxl==3.1.5
+requests==2.34.2
+pytest==9.1.1
