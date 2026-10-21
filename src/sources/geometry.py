@@ -8,6 +8,9 @@ DEPARTEMENTS_URL = (
     "https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/departements-version-simplifiee.geojson"
 )
 COMMUNES_URL = "https://geo.api.gouv.fr/departements/{dep}/communes?format=geojson&geometry=contour"
+# Mayotte is outside the licence scope and geo.api has no outline for it: same repository as DEPARTEMENTS_URL.
+MAYOTTE_URL = ("https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/departements/976-mayotte/"
+               "departement-976-mayotte.geojson")
 
 TOLERANCE = 0.0005  # degrees (~40-50 m): enough detail for a département-wide commune map
 DECIMALS = 4        # ~10 m
@@ -67,6 +70,64 @@ def simplify_communes(raw: dict) -> dict:
          "geometry": simplify_geometry(f["geometry"])}
         for f in raw["features"] if f.get("geometry")
     ]}
+
+
+def _rings(geom: dict) -> list[list[list[float]]]:
+    """All rings (outer and inner) of a Polygon or MultiPolygon."""
+    polygons = [geom["coordinates"]] if geom["type"] == "Polygon" else geom["coordinates"]
+    return [ring for poly in polygons for ring in poly]
+
+
+def dissolve(features: list[dict], tol: float = TOLERANCE) -> dict:
+    """Merge commune polygons into one département outline (MultiPolygon), without a GIS library.
+
+    Two neighbouring communes share their border, so that border appears twice among all the segments.
+    Keeping the segments that appear only once leaves the outer boundary; we then chain them into rings.
+    Works on the raw (unsimplified) outlines, where shared borders have identical vertices.
+    """
+    count: dict[frozenset, int] = {}
+    for f in features:
+        for ring in _rings(f["geometry"]):
+            for a, b in zip(ring[:-1], ring[1:]):
+                seg = frozenset([(round(a[0], 6), round(a[1], 6)), (round(b[0], 6), round(b[1], 6))])
+                if len(seg) == 2:
+                    count[seg] = count.get(seg, 0) + 1
+
+    neighbours: dict[tuple, list[tuple]] = {}
+    for seg, n in count.items():
+        if n == 1:
+            a, b = tuple(seg)
+            neighbours.setdefault(a, []).append(b)
+            neighbours.setdefault(b, []).append(a)
+
+    rings = []
+    while neighbours:
+        start = next(iter(neighbours))
+        ring, point = [start], start
+        while True:
+            nxt = neighbours[point].pop()
+            neighbours[nxt].remove(point)
+            for p in (point, nxt):
+                if not neighbours[p]:
+                    del neighbours[p]
+            ring.append(nxt)
+            point = nxt
+            if point == start or point not in neighbours:
+                break
+        if len(ring) >= 4 and ring[0] == ring[-1]:
+            rings.append(simplify_ring([list(p) for p in ring], tol))
+
+    # Plotly reads a ring wound the "wrong" way as the whole globe minus the shape, so every ring gets the same
+    # orientation as the source's outer rings.
+    source_sign = _signed_area(features[0]["geometry"]["coordinates"][0] if features[0]["geometry"]["type"] == "Polygon"
+                               else features[0]["geometry"]["coordinates"][0][0]) > 0
+    rings = [r if (_signed_area(r) > 0) == source_sign else r[::-1] for r in rings]
+    return {"type": "MultiPolygon", "coordinates": [[r] for r in rings]}
+
+
+def _signed_area(ring: list[list[float]]) -> float:
+    """Shoelace formula: > 0 for counter-clockwise rings, < 0 for clockwise (planar approximation)."""
+    return sum(a[0] * b[1] - b[0] * a[1] for a, b in zip(ring[:-1], ring[1:])) / 2
 
 
 def read_geojson(path: Path) -> dict:

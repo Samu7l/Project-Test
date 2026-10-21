@@ -39,6 +39,7 @@ RAW_FILES = {
     "geoapi_departements.json": src_pop.DEPARTEMENTS_URL,
     "geoapi_regions.json": src_pop.REGIONS_URL,
     "departements-version-simplifiee.geojson": src_geom.DEPARTEMENTS_URL,
+    "departement-976-mayotte.geojson": src_geom.MAYOTTE_URL,
     "v_mvt_commune_2026.csv": geo.MVT_URL,
 }
 # Accented names inside the INJEP zips break `unzip` on macOS; we extract them under ASCII names.
@@ -126,17 +127,33 @@ def build_clubs(clubs: pd.DataFrame, code_map: dict[str, str]) -> dict[str, pd.D
     return {"clubs_dep_fed": dep_fed, "clubs_com_fed": com_fed, "fed_clubs": totals}
 
 
+def build_overseas_outlines(overseas: list[str]) -> dict:
+    """Overseas département outlines: 971-974 merged from their commune outlines, Mayotte (976) simplified."""
+    features = []
+    for dep in overseas:
+        communes = src_geom.read_geojson(RAW / "communes_contours" / f"{dep}.geojson")["features"]
+        features.append({"type": "Feature", "properties": {"code": dep},
+                         "geometry": src_geom.dissolve(communes)})
+    mayotte = src_geom.read_geojson(RAW / "departement-976-mayotte.geojson")
+    features.append({"type": "Feature", "properties": {"code": "976"},
+                     "geometry": src_geom.simplify_geometry(mayotte["geometry"])})
+    return {"type": "FeatureCollection", "features": features}
+
+
 def build_geometries(deps: pd.DataFrame) -> dict[str, int]:
-    """Mainland département map + one simplified commune file per département. Returns feature counts."""
+    """Mainland map, overseas outlines and one simplified commune file per département. Returns feature counts."""
     dep_geo = src_geom.read_geojson(RAW / "departements-version-simplifiee.geojson")
     src_geom.write_geojson(dep_geo, PROCESSED / "geo" / "departements_metro.geojson")
     ensure_commune_contours(deps["dep"].tolist())
+    overseas = build_overseas_outlines(deps.loc[deps["is_overseas"], "dep"].tolist())
+    src_geom.write_geojson(overseas, PROCESSED / "geo" / "departements_overseas.geojson")
     n = 0
     for dep in deps["dep"]:
         simple = src_geom.simplify_communes(src_geom.read_geojson(RAW / "communes_contours" / f"{dep}.geojson"))
         src_geom.write_geojson(simple, PROCESSED / "geo" / "communes" / f"{dep}.geojson")
         n += len(simple["features"])
-    return {"departement_features": len(dep_geo["features"]), "commune_features": n}
+    return {"departement_features": len(dep_geo["features"]), "overseas_features": len(overseas["features"]),
+            "commune_features": n}
 
 
 def save(tables: dict[str, pd.DataFrame]) -> None:

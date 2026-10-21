@@ -26,3 +26,9 @@ def departements_geojson() -> dict:
 def communes_geojson(dep: str) -> dict:
     """Simplified commune outlines of one département (property `code`)."""
     return json.loads((PROCESSED / "geo" / "communes" / f"{dep}.geojson").read_text())
+
+
+@st.cache_data
+def overseas_geojson() -> dict:
+    """Overseas département outlines (971-974 and Mayotte 976, property `code`)."""
+    return json.loads((PROCESSED / "geo" / "departements_overseas.geojson").read_text())

@@ -171,6 +171,12 @@ def checks_joins(dep_fed: pd.DataFrame, com_fed: pd.DataFrame, clubs_com: pd.Dat
     metro = set(pop_dep.loc[~pop_dep["is_overseas"], "dep"])
     out.append(Check("Joins", "Mainland départements with a map shape", f"{len(metro & geo_codes)} / {len(metro)}",
                      f"{len(metro)} / {len(metro)}", metro <= geo_codes, "overseas 971–974 shown in a table under the map"))
+    om = json.loads((PROCESSED / "geo" / "departements_overseas.geojson").read_text())
+    om_codes = {f["properties"]["code"] for f in om["features"]}
+    overseas = set(pop_dep.loc[pop_dep["is_overseas"], "dep"]) | {"976"}
+    out.append(Check("Joins", "Overseas départements with a map shape (incl. Mayotte, no data)",
+                     f"{len(overseas & om_codes)} / {len(overseas)}", f"{len(overseas)} / {len(overseas)}",
+                     overseas <= om_codes, "971–974 merged from commune outlines; 976 from france-geojson"))
     missing = 0
     for dep, com in pop_com.groupby("dep")["com"]:
         shapes = json.loads((PROCESSED / "geo" / "communes" / f"{dep}.geojson").read_text())

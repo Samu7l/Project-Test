@@ -14,6 +14,7 @@ Raw files were downloaded on 2026-10-20 and are not committed (`data/raw/` is gi
 | R1b | `geoapi_arrondissements.json` | same API, `type=arrondissement-municipal` (Paris / Lyon / Marseille districts) | Licence Ouverte | — |
 | R1c | `DS_POPULATIONS_REFERENCE_2023_data.csv` | INSEE, populations de référence 2023 (supplied by the student) | Licence Ouverte | `a905cebb258a` |
 | R2 | `departements-version-simplifiee.geojson` | github.com/gregoiredavid/france-geojson (IGN Admin Express 2018, simplified) | Licence Ouverte (IGN Admin Express) | `c08a1ad48299` |
+| R2b | `departement-976-mayotte.geojson` | same repository as R2 (Mayotte outline only, drawn in gray: no data; geo.api has no outline for 976) | Licence Ouverte (IGN Admin Express) | — |
 | R3 | `communes_contours/{dep}.geojson` | `https://geo.api.gouv.fr/departements/{code}/communes?format=geojson&geometry=contour` | Licence Ouverte | 100 files |
 | R4 | `geoapi_departements.json`, `geoapi_regions.json` | geo.api.gouv.fr (names, region codes) | Licence Ouverte | — |
 | G1 | `v_mvt_commune_2026.csv` | INSEE COG 2026, commune events since 1943 | Licence Ouverte | — |

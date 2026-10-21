@@ -1,45 +1,57 @@
-"""Plotly figures. Each function returns a figure; titles carry the takeaway, axes carry units."""
+"""Plotly figures. Each function returns a figure; titles carry the takeaway, axes carry units.
+
+Numbers in hover text and labels are formatted in Python with ui.fmt_num / ui.fmt_rate; axis ticks and colour
+bars use the same separators through the layout's `separators` setting.
+"""
 from __future__ import annotations
 
 import pandas as pd
 import plotly.graph_objects as go
 
-RATE_UNIT = "licences per 10,000 inhabitants"
+from src import ui
+
 # Sequential blue ramp (light = few licences, dark = many): one hue, light -> dark.
 BLUES = ["#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#256abf", "#184f95", "#0d366b"]
 COLORSCALE = [[i / (len(BLUES) - 1), c] for i, c in enumerate(BLUES)]
 BAR = "#2a78d6"
+CONTEXT = "#a8a7a1"     # gray dots: the départements that are not highlighted
 NO_DATA = "#bdbcb6"     # neutral gray: communes without a rate (below the population threshold)
 HIGHLIGHT = "#eb6834"   # outline of the selected département (a different hue from the blue ramp)
 REFERENCE = "#7a7974"   # reference line (France average)
+COLORBAR = dict(title=dict(text=f"licences per<br>{ui.fmt_num(10_000)} inh.", side="top"), thickness=12, len=0.7)
 
 
 def _layout(fig: go.Figure, title: str, height: int) -> go.Figure:
-    """Shared layout: takeaway title, tight margins."""
+    """Shared layout: takeaway title, tight margins, '.' decimal mark and space thousands separator."""
     fig.update_layout(title=dict(text=title, x=0, xanchor="left"), height=height,
-                      margin=dict(l=0, r=0, t=60, b=0))
+                      margin=dict(l=0, r=0, t=60, b=0), separators="." + ui.THOUSANDS)
     return fig
 
 
-def _rate_format(rates: pd.Series) -> str:
-    """d3 format for rates: no decimals when values are large, one decimal for small federations."""
-    return ",.0f" if rates.max() >= 100 else ",.1f"
+def _hover(df: pd.DataFrame, name_col: str) -> tuple[pd.DataFrame, str]:
+    """customdata (pre-formatted strings) and hover template: name, rate, licences, population."""
+    custom = pd.DataFrame({
+        "name": df[name_col], "rate": df["rate"].map(ui.fmt_rate),
+        "licences": df["licences"].map(ui.fmt_num), "population": df["population"].map(ui.fmt_num),
+    })
+    template = (f"<b>%{{customdata[0]}}</b><br>%{{customdata[1]}} {ui.RATE_UNIT}"
+                "<br>%{customdata[2]} licences · %{customdata[3]} inhabitants<extra></extra>")
+    return custom, template
 
 
-def _map_hover(fmt: str) -> str:
-    """Hover text for maps; customdata = [code, name, rate, licences, population]."""
-    return (f"<b>%{{customdata[1]}}</b><br>%{{customdata[2]:{fmt}}} {RATE_UNIT}"
-            "<br>%{customdata[3]:,} licences · %{customdata[4]:,} inhabitants<extra></extra>")
+def departement_map(df: pd.DataFrame, geojson: dict, selected: str, title: str, z_range: tuple[float, float],
+                    height: int = 620, show_scale: bool = True) -> go.Figure:
+    """Choropleth of départements by rate; the selected one is outlined.
 
-
-def departement_map(df: pd.DataFrame, geojson: dict, selected: str, title: str) -> go.Figure:
-    """Choropleth of the mainland départements by rate; the selected one is outlined."""
-    custom = df[["dep", "dep_name", "rate", "licences", "population"]]
+    `z_range` fixes the colour scale so that the main map and the Île-de-France zoom use the same colours.
+    `customdata[4]` holds the département code (read back when the user clicks the map).
+    """
+    custom, template = _hover(df, "dep_name")
+    custom["dep"] = df["dep"].values
     fig = go.Figure(go.Choropleth(
         geojson=geojson, featureidkey="properties.code", locations=df["dep"], z=df["rate"],
-        customdata=custom, hovertemplate=_map_hover(_rate_format(df["rate"])), colorscale=COLORSCALE,
-        marker_line_color="white", marker_line_width=0.5,
-        colorbar=dict(title=dict(text="licences per<br>10,000 inh.", side="top"), thickness=12, len=0.7),
+        zmin=z_range[0], zmax=z_range[1], customdata=custom, hovertemplate=template, colorscale=COLORSCALE,
+        marker_line_color="white", marker_line_width=0.5, showscale=show_scale, colorbar=COLORBAR,
     ))
     sel = df[df["dep"] == selected]
     if not sel.empty:
@@ -50,7 +62,43 @@ def departement_map(df: pd.DataFrame, geojson: dict, selected: str, title: str) 
         ))
     fig.update_geos(fitbounds="locations", visible=False, bgcolor="rgba(0,0,0,0)")
     fig.update_layout(dragmode=False, clickmode="event+select")
-    return _layout(fig, title, 620)
+    return _layout(fig, title, height)
+
+
+def no_data_map(geojson: dict, code: str, title: str, hover: str, height: int) -> go.Figure:
+    """A territory drawn in gray, for places outside the data (e.g. Mayotte)."""
+    fig = go.Figure(go.Choropleth(
+        geojson=geojson, featureidkey="properties.code", locations=[code], z=[0],
+        colorscale=[[0, NO_DATA], [1, NO_DATA]], showscale=False, marker_line_color="white",
+        marker_line_width=0.5, hovertemplate=f"{hover}<extra></extra>",
+    ))
+    fig.update_geos(fitbounds="locations", visible=False, bgcolor="rgba(0,0,0,0)")
+    fig.update_layout(dragmode=False)
+    return _layout(fig, title, height)
+
+
+def ranked_dots(df: pd.DataFrame, reference: float, highlight: list[str], title: str) -> go.Figure:
+    """Every département as a dot, sorted by rate; `highlight` départements labelled, France average as a line."""
+    df = df.sort_values("rate").reset_index(drop=True)
+    df["position"] = df.index + 1
+    custom, template = _hover(df, "dep_name")
+    fig = go.Figure(go.Scatter(
+        x=df["position"], y=df["rate"], mode="markers", marker=dict(size=9, color=CONTEXT),
+        customdata=custom, hovertemplate=template, showlegend=False,
+    ))
+    hi = df[df["dep"].isin(highlight)]
+    fig.add_trace(go.Scatter(
+        x=hi["position"], y=hi["rate"], mode="markers+text", marker=dict(size=14, color=BAR),
+        text=[f"<b>{n}</b> {ui.fmt_rate(r)}" for n, r in zip(hi["dep_name"], hi["rate"])],
+        textposition=["middle right" if p < len(df) / 2 else "middle left" for p in hi["position"]],
+        customdata=custom.loc[hi.index], hovertemplate=template, showlegend=False,
+    ))
+    fig.add_hline(y=reference, line_dash="dot", line_color=REFERENCE,
+                  annotation_text=f"France average {ui.fmt_rate(reference)}", annotation_position="top left")
+    fig.update_xaxes(title_text=f"{len(df)} mainland départements, from lowest to highest rate",
+                     showticklabels=False, showgrid=False, zeroline=False, range=[-2, len(df) + 3])
+    fig.update_yaxes(title_text=ui.RATE_UNIT, tickformat=",", rangemode="tozero")
+    return _layout(fig, title, 420)
 
 
 def rank_bars(df: pd.DataFrame, reference: float, x_max: float, title: str) -> go.Figure:
@@ -59,42 +107,39 @@ def rank_bars(df: pd.DataFrame, reference: float, x_max: float, title: str) -> g
     `x_max` fixes the axis so that two bar charts shown side by side share the same scale.
     """
     df = df.iloc[::-1]  # Plotly draws the first row at the bottom
-    fmt = _rate_format(df["rate"].clip(lower=reference))
+    custom, template = _hover(df, "dep_name")
     fig = go.Figure(go.Bar(
         x=df["rate"], y=df["dep_name"], orientation="h", marker_color=BAR,
-        texttemplate=f"%{{x:{fmt}}}", textposition="outside", cliponaxis=False,
-        customdata=df[["licences", "population"]],
-        hovertemplate=f"<b>%{{y}}</b><br>%{{x:{fmt}}} {RATE_UNIT}"
-                      "<br>%{customdata[0]:,} licences · %{customdata[1]:,} inhabitants<extra></extra>",
+        text=df["rate"].map(ui.fmt_rate), textposition="outside", cliponaxis=False,
+        customdata=custom, hovertemplate=template,
     ))
     fig.add_vline(x=reference, line_dash="dot", line_color=REFERENCE,
-                  annotation_text=f"France {reference:{fmt}}", annotation_position="top")
-    fig.update_xaxes(title_text=RATE_UNIT, showgrid=False, range=[0, x_max * 1.12], tickformat=",")
+                  annotation_text=f"France {ui.fmt_rate(reference)}", annotation_position="top")
+    fig.update_xaxes(title_text=ui.RATE_UNIT, showgrid=False, range=[0, x_max * 1.12], tickformat=",")
     fig.update_yaxes(title_text=None)
     fig.update_layout(bargap=0.35)
     return _layout(fig, title, 300)
 
 
-def commune_map(df: pd.DataFrame, geojson: dict, min_pop: int, title: str) -> go.Figure:
-    """Communes of one département: rate where population ≥ min_pop, gray otherwise."""
+def commune_map(df: pd.DataFrame, geojson: dict, title: str) -> go.Figure:
+    """Communes of one département: rate where population is above the threshold, gray otherwise."""
     rated, small = df[df["above_threshold"]], df[~df["above_threshold"]]
     fig = go.Figure()
     if not small.empty:
+        custom, _ = _hover(small, "com_name")
         fig.add_trace(go.Choropleth(
             geojson=geojson, featureidkey="properties.code", locations=small["com"], z=[0] * len(small),
             colorscale=[[0, NO_DATA], [1, NO_DATA]], showscale=False, marker_line_color="white",
-            marker_line_width=0.3, name=f"< {min_pop:,} inhabitants",
-            customdata=small[["com_name", "population", "licences"]],
-            hovertemplate=f"<b>%{{customdata[0]}}</b><br>%{{customdata[1]:,}} inhabitants (< {min_pop:,}: no rate)"
-                          "<br>%{customdata[2]:,} licences<extra></extra>",
+            marker_line_width=0.3, customdata=custom,
+            hovertemplate=f"<b>%{{customdata[0]}}</b><br>%{{customdata[3]}} inhabitants "
+                          f"(< {ui.MIN_POP_LABEL}: no rate)<br>%{{customdata[2]}} licences<extra></extra>",
         ))
     if not rated.empty:
+        custom, template = _hover(rated, "com_name")
         fig.add_trace(go.Choropleth(
             geojson=geojson, featureidkey="properties.code", locations=rated["com"], z=rated["rate"],
             colorscale=COLORSCALE, marker_line_color="white", marker_line_width=0.3,
-            customdata=rated[["com", "com_name", "rate", "licences", "population"]],
-            hovertemplate=_map_hover(_rate_format(rated["rate"])),
-            colorbar=dict(title=dict(text="licences per<br>10,000 inh.", side="top"), thickness=12, len=0.7),
+            customdata=custom, hovertemplate=template, colorbar=COLORBAR,
         ))
     fig.update_geos(fitbounds="locations", visible=False, bgcolor="rgba(0,0,0,0)")
     fig.update_layout(dragmode=False)
