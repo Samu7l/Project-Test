@@ -19,6 +19,7 @@ from src.sources import federations as src_fed
 from src.sources import geometry as src_geom
 from src.sources import licences as src_lic
 from src.sources import population as src_pop
+from src.sources import drees as src_drees
 from src.sources import qpv as src_qpv
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -43,6 +44,7 @@ RAW_FILES = {
     "departement-976-mayotte.geojson": src_geom.MAYOTTE_URL,
     "v_mvt_commune_2026.csv": geo.MVT_URL,
     "insee_qpv2024/pop_QPV24.xlsx": src_qpv.URL,
+    "drees/Panorama_statistique_2024.xlsx": src_drees.URL,
 }
 # Accented names inside the INJEP zips break `unzip` on macOS; we extract them under ASCII names.
 INJEP_MEMBERS = {
@@ -184,7 +186,9 @@ def main() -> None:
     fed[count_cols] = fed[count_cols].fillna(0).astype("int64")
 
     qpv = src_qpv.read_qpv_population(RAW / "insee_qpv2024" / "pop_QPV24.xlsx")
+    equipment = src_drees.read_equipment(RAW / "drees" / "Panorama_statistique_2024.xlsx", deps)
     tables = {"federations": fed, "population_dep": deps, "population_com": communes, "population_qpv": qpv,
+              "drees_disabled_adults": equipment,
               **lic_tables, **club_tables}
     print("tables:")
     save(tables)

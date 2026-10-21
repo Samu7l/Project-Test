@@ -2,6 +2,7 @@
 import streamlit as st
 
 from src import data, indicators, ui
+from src.sources import drees
 
 fed = data.table("federations")
 disability = fed[fed["is_disability"]].sort_values("code")
@@ -43,6 +44,25 @@ ui.france_maps(ui.rate_frame(rates),
 ui.source_caption(ui.SOURCE_POPULATION, f"{names}; licences counted at the holder's home. Colour scale capped at "
                   f"{ui.fmt_rate(second['rate'])} ({second['dep_name']}, 2nd highest): {top['dep_name']} "
                   f"({ui.fmt_rate(top['rate'])}) is shown in the darkest colour.")
+
+# --- Context for the top département (DREES equipment rates; a hypothesis, not a cause) -------------------------
+equipment = data.table("drees_disabled_adults").set_index("dep")
+france_eq, deps_eq = equipment.loc[drees.FRANCE], equipment.drop(drees.FRANCE)
+ranks = deps_eq.rank(ascending=False, method="min").loc[top["dep"]]
+firsts = [drees.LABELS[k] for k in drees.LABELS if ranks[k] == 1]
+top_by_fed = lic_dep_fed[(lic_dep_fed["dep"] == top["dep"]) & lic_dep_fed["code"].isin(codes)]
+adapte = top_by_fed.loc[top_by_fed["code"] == "503", "licences"].sum() / top_by_fed["licences"].sum()
+st.markdown(
+    f"**Why {top['dep_name']}? A hypothesis.** {top['dep_name']} also has France's highest density of places in "
+    f"establishments for disabled adults in {len(firsts)} of {len(drees.LABELS)} categories ("
+    f"{', '.join(firsts)}): for example {ui.fmt_num(deps_eq.loc[top['dep'], 'esat'], 1)} ESAT places per "
+    f"{ui.fmt_num(1_000)} inhabitants aged 20–59, against {ui.fmt_num(france_eq['esat'], 1)} for France. "
+    f"{ui.fmt_pct(adapte)} of its disability licences are Sport Adapté licences. Its high rate **may reflect** these "
+    "establishments, whose residents hold licences where they live; the census does not link licences to "
+    "establishments, so this cannot be checked here."
+)
+st.caption("Source: DREES, Panorama statistique 2024 « Handicap et invalidité », sheet 11 (DREES, FINESS; INSEE "
+           "population estimates), places at 31/12/2023 — data.drees.solidarites-sante.gouv.fr")
 
 dep = st.session_state["dep"]
 row = rates.set_index("dep").loc[dep]

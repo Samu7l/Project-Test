@@ -18,6 +18,7 @@ Raw files were downloaded on 2026-10-20 and are not committed (`data/raw/` is gi
 | R3 | `communes_contours/{dep}.geojson` | `https://geo.api.gouv.fr/departements/{code}/communes?format=geojson&geometry=contour` | Licence Ouverte | 100 files |
 | R4 | `geoapi_departements.json`, `geoapi_regions.json` | geo.api.gouv.fr (names, region codes) | Licence Ouverte | — |
 | R5 | `insee_qpv2024/pop_QPV24.xlsx` | INSEE, "Populations municipales des quartiers prioritaires 2024" (insee.fr/fr/statistiques/8210600, online 10/07/2025): one row per 2024 QPV with its département and municipal population | Licence Ouverte | — |
+| R6 | `drees/Panorama_statistique_2024.xlsx` | DREES, Panorama statistique 2024 « Handicap et invalidité » (data.drees.solidarites-sante.gouv.fr), sheet 11: places for disabled adults per 1 000 inhabitants aged 20–59 by département, 31/12/2023 | not stated in metadata | — |
 | G1 | `v_mvt_commune_2026.csv` | INSEE COG 2026, commune events since 1943 | Licence Ouverte | — |
 | V1 | `injep_2023/` (licences, clubs, federation families) | injep.fr, 2023 census results, data at 11/07/2024 | Licence Ouverte | — |
 | V2 | `injep_2024/` (history 2002–2024) | injep.fr, 2024 census results (July 2025) with **revised 2023 figures** | Licence Ouverte | — |
@@ -172,24 +173,20 @@ Département codes: 100 in geocoded licences (`01`–`95` with `2A`/`2B`, `971`�
 - Results (all federations in territorial scope): licences held by QPV residents **4.30 %**, active clubs and EPA
   located in a QPV **4.00 %**, against **8.43 %** of the population. 99 of 100 départements are below parity for licences.
 
-## 11. Lines for the Data & Limits page (Phase 6)
+## 11. Limits (Data & Limits page)
 
-- A licence is not a person: one person can hold several licences.
-- School sport (UNSS, USEP) is left out of maps and territorial indicators: their licences are recorded at the
-  school's address, not where the pupil lives, so they would distort comparisons between places.
-- Défense, Maccabi and Police federations only report by département: included in département figures, absent from
-  commune and QPV views (160,151 licences).
-- Maps use geocoded licences (98.75 %); abroad, Mayotte, COM and unallocated licences (1.25 %) are in the national total only.
-- Overseas départements 971–974 are shown in a table, not on the map.
-- Disability: Handisport + Sport Adapté only; a lower bound, as many disabled athletes hold ordinary licences.
-- QPV: 2024 QPV list. Benchmark = INSEE QPV population (2020 mainland, 2021 overseas) ÷ legal population 2023;
-  the dates differ by about three years. A club located in a QPV can serve people living elsewhere.
-- Seniors: the share of licences held by people aged 60+ partly reflects each département's age structure (no
-  population by age in our sources): not a participation rate.
-- Disability map: colour scale capped at the second-highest département so that Lozère (an outlier) does not wash
-  out the map; Lozère is shown in the darkest colour and named in the caption.
-- Women: shares = women ÷ (women + men); sex is reported for every licence. The federation ranking is national and
-  includes school sport; the football map uses geocoded licences.
-- Population: INSEE legal population 2023 (population municipale), COG 2026; licence communes mapped from COG 2024.
-- Our national total uses INJEP's revised 2023 figures (2 federations differ from the first publication).
-- Single year (2023): no trends.
+The reference list is **`src/limits.py`**: every number in it is computed from the processed tables, and the Data &
+Limits page renders it. Topics: licences ≠ people; school sport (UNSS, USEP) out of territorial views; Défense,
+Maccabi and Police out of all territorial views (corrected: an earlier draft said "kept in département figures",
+which stopped being true when the Territories map excluded them); geocoding share; overseas départements in small
+maps on the same colour scale (corrected: an earlier draft said "in a table"), Mayotte gray; commune threshold and
+Paris/Lyon/Marseille as single communes; population vintage and geography; QPV benchmark dates and the younger QPV
+population (gap probably understated); women's share definition; seniors' age-structure caveat; disability as a
+lower bound, capped colour scale and the DREES hypothesis; revised INJEP figures; single year.
+
+## 12. Disability context (Phase 6)
+
+R6 (DREES Panorama 2024, sheet 11; DREES, FINESS; places at 31/12/2023 per 1 000 inhabitants aged 20–59): Lozère
+ranks first of 100 départements in all four categories of places for disabled adults (MAS, FAM, residential homes,
+ESAT). On the Disability page this is cited as a fact, and the link with Lozère's licence rate is phrased as a
+hypothesis ("may reflect"). The dataset metadata states no licence.

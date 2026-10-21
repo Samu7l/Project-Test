@@ -6,6 +6,7 @@ Each check returns a row (check, observed, expected, passed, note). The same tab
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -234,7 +235,11 @@ def run_all() -> pd.DataFrame:
               + checks_joins(dep_fed, com_fed, clubs_com, pop_com, pop_dep)
               + checks_population(pop_com, pop_dep)
               + checks_qpv(pop_dep, load("population_qpv")))
-    return pd.DataFrame([asdict(c) for c in checks])
+    res = pd.DataFrame([asdict(c) for c in checks])
+    # Same number style as the app: space as thousands separator ("16 535 056"), applied to the text columns.
+    for col in ["observed", "expected", "note"]:
+        res[col] = res[col].map(lambda t: re.sub(r"(?<=\d),(?=\d{3}\b)", "\u00a0", t))
+    return res
 
 
 def main() -> None:

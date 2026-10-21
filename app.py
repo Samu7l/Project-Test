@@ -18,6 +18,8 @@ PAGES = {
     st.Page("app_pages/5_Seniors.py", title="Seniors", icon="🧓"): (True, True, ui.GEO_SCOPE),
     st.Page("app_pages/6_Disability.py", title="Disability", icon="♿"): (True, False, ui.GEO_SCOPE),
     st.Page("app_pages/7_Explore.py", title="Explore", icon="🔎"): (False, True, ui.NATIONAL_SCOPE),
+    st.Page("app_pages/8_Implications.py", title="Implications", icon="💡"): (False, False, ui.GEO_SCOPE),
+    st.Page("app_pages/9_Data_and_Limits.py", title="Data & Limits", icon="📋"): (False, False, ui.GEO_SCOPE),
 }
 
 current = st.navigation(list(PAGES))
