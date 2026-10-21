@@ -41,7 +41,9 @@ def limits(fed: pd.DataFrame, rates: pd.DataFrame, validation: pd.DataFrame) -> 
         ("Women", "Shares = women ÷ (women + men); sex is reported for every licence. The federation ranking is "
          "national (all places, school sport included); the football map uses geocoded licences."),
         ("Seniors", "The share of licences held by people aged 60+ partly reflects each département's age "
-         "structure (our sources give no population by age): it is not a participation rate."),
+         "structure: it is not a participation rate. The legal-population file has no sex or age; the INSEE census "
+         "2023 table by sex and age (same year) has been identified to compute rates per 10 000 people aged 60+ "
+         "and per 10 000 women / men, but is not used yet."),
         ("Disability", f"Only {' and '.join(disability['name'])}: a lower bound, as many disabled athletes hold "
          "ordinary licences and the census does not record disability. No disabled population by département: "
          "never a share of disabled people. The map's colour scale is capped at the second-highest département; "

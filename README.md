@@ -15,7 +15,7 @@ INJEP-MEDES, data.gouv.fr). Individual project, EFREI Data & AI — Samuel Molli
 | Disability | Handisport + Sport Adapté licences per 10 000 inhabitants (a lower bound) |
 | Explore | Age pyramid (women / men) for any federation |
 | Implications | Five takeaways, where public effort could be targeted, what the data cannot say |
-| Data & Limits | Sources, pipeline, validation results (30 checks), full list of limits |
+| Data & Limits | Sources, pipeline, validation results (31 checks), full list of limits |
 
 Every number in the text is computed from the data. Sidebar filters (département, federation) are shared by all
 pages; a filter that does not apply to a page is shown as "not applied". Maps are clickable.
@@ -42,7 +42,7 @@ The app reads only `data/processed/` (shipped with the code, ~43 MB): no downloa
 
 ```bash
 python -m src.build      # downloads the raw files into data/raw/ (~600 MB, once) and rebuilds data/processed/
-python -m src.validate   # 30 checks against INJEP published figures, sums and joins; saves the results for the app
+python -m src.validate   # 31 checks against INJEP published figures, sums and joins; saves the results for the app
 pytest                   # unit tests + saved validation results (the full re-run needs data/raw/)
 ```
 
@@ -79,7 +79,7 @@ src/
   geo.py               commune codes (COG 2024) -> current communes (COG 2026)
   build.py             raw -> processed tables
   indicators.py        rates, shares, rankings (pure pandas)
-  validate.py          30 checks (published figures, sums, joins)
+  validate.py          31 checks (published figures, sums, joins)
   limits.py            limits shown on the Data & Limits page
   viz.py, ui.py        Plotly figures; Streamlit components, number formatting, sidebar
   data.py              cached loaders (st.cache_data)

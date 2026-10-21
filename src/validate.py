@@ -205,6 +205,19 @@ def checks_population(pop_com: pd.DataFrame, pop_dep: pd.DataFrame) -> list[Chec
     ]
 
 
+def checks_census_age_sex(pop_dep: pd.DataFrame) -> list[Check]:
+    """INSEE census 2023 by sex × age (R7, identified, not used yet): totals vs the legal population 2023."""
+    path = RAW / "insee_rp2023" / "DS_RP_TD_POPULATION_AGESEX_PRINC_2023.parquet"
+    if not path.exists():
+        return []
+    rp = pd.read_parquet(path, filters=[("GEO_OBJECT", "==", "DEP"), ("AGE", "==", "_T"), ("SEX", "==", "_T")])
+    rp = rp.astype({"GEO": str}).set_index("GEO")["OBS_VALUE"]
+    gap = (rp.reindex(pop_dep["dep"]).to_numpy() - pop_dep["population"].to_numpy())
+    return [Check("Population", "Census 2023 by sex × age: département totals = legal population 2023",
+                  f"max gap {abs(gap).max():.2f}", "≤ 1", bool(abs(gap).max() <= 1),
+                  "R7, same year as the licences; not used in the app yet")]
+
+
 def checks_qpv(pop_dep: pd.DataFrame, pop_qpv: pd.DataFrame) -> list[Check]:
     """QPV codes of the licence and club files vs the INSEE QPV 2024 population file."""
     lic = pd.read_csv(RAW / "lic-data-2023.csv", sep=";", encoding="utf-8-sig", dtype=str,
@@ -234,7 +247,8 @@ def run_all() -> pd.DataFrame:
               + checks_internal(fed, dep_fed, com_fed, pyramid, clubs_dep, clubs_com)
               + checks_joins(dep_fed, com_fed, clubs_com, pop_com, pop_dep)
               + checks_population(pop_com, pop_dep)
-              + checks_qpv(pop_dep, load("population_qpv")))
+              + checks_qpv(pop_dep, load("population_qpv"))
+              + checks_census_age_sex(pop_dep))
     res = pd.DataFrame([asdict(c) for c in checks])
     # Same number style as the app: space as thousands separator ("16 535 056"), applied to the text columns.
     for col in ["observed", "expected", "note"]:

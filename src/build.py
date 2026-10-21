@@ -45,6 +45,9 @@ RAW_FILES = {
     "v_mvt_commune_2026.csv": geo.MVT_URL,
     "insee_qpv2024/pop_QPV24.xlsx": src_qpv.URL,
     "drees/Panorama_statistique_2024.xlsx": src_drees.URL,
+    # R7, identified but not used yet (population by sex and age, census 2023):
+    "insee_rp2023/DS_RP_TD_POPULATION_AGESEX_PRINC_2023.parquet":
+        "https://www.insee.fr/fr/statistiques/fichier/9006235/DS_RP_TD_POPULATION_AGESEX_PRINC_2023.parquet",
 }
 # Accented names inside the INJEP zips break `unzip` on macOS; we extract them under ASCII names.
 INJEP_MEMBERS = {

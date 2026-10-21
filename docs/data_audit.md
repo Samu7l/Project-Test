@@ -18,6 +18,7 @@ Raw files were downloaded on 2026-10-20 and are not committed (`data/raw/` is gi
 | R3 | `communes_contours/{dep}.geojson` | `https://geo.api.gouv.fr/departements/{code}/communes?format=geojson&geometry=contour` | Licence Ouverte | 100 files |
 | R4 | `geoapi_departements.json`, `geoapi_regions.json` | geo.api.gouv.fr (names, region codes) | Licence Ouverte | — |
 | R5 | `insee_qpv2024/pop_QPV24.xlsx` | INSEE, "Populations municipales des quartiers prioritaires 2024" (insee.fr/fr/statistiques/8210600, online 10/07/2025): one row per 2024 QPV with its département and municipal population | Licence Ouverte | — |
+| R7 | `insee_rp2023/DS_RP_TD_POPULATION_AGESEX_PRINC_2023.parquet` (88 MB) | INSEE, census 2023 « Population par sexe et âge » (insee.fr/fr/statistiques/9006235, published 25/06/2026) | Licence Ouverte | — |
 | R6 | `drees/Panorama_statistique_2024.xlsx` | DREES, Panorama statistique 2024 « Handicap et invalidité » (data.drees.solidarites-sante.gouv.fr), sheet 11: places for disabled adults per 1 000 inhabitants aged 20–59 by département, 31/12/2023 | not stated in metadata | — |
 | G1 | `v_mvt_commune_2026.csv` | INSEE COG 2026, commune events since 1943 | Licence Ouverte | — |
 | V1 | `injep_2023/` (licences, clubs, federation families) | injep.fr, 2023 census results, data at 11/07/2024 | Licence Ouverte | — |
@@ -190,3 +191,16 @@ R6 (DREES Panorama 2024, sheet 11; DREES, FINESS; places at 31/12/2023 per 1 000
 ranks first of 100 départements in all four categories of places for disabled adults (MAS, FAM, residential homes,
 ESAT). On the Disability page this is cited as a fact, and the link with Lozère's licence rate is phrased as a
 hypothesis ("may reflect"). The dataset metadata states no licence.
+
+## 13. Population by sex and age (identified, not used yet)
+
+- **R1b (`DS_POPULATIONS_REFERENCE_2023_data.csv`) has no sex or age**: 106,065 rows × 6 columns (`GEO`,
+  `GEO_OBJECT`, `FREQ`, `POPREF_MEASURE`, `TIME_PERIOD`, `OBS_VALUE`); one year (2023); levels COM, ARM, ARR, DEP,
+  REG, FRANCE; measures PMUN, PCAP, PTOT only.
+- **R7, INSEE census 2023, table POP1** (`DS_RP_TD_POPULATION_AGESEX_PRINC_2023`): 12.8 M rows × 9 columns; 11
+  geographic levels including the 100 départements; sex F / M / total; age in single years 0–99, 100+ and total;
+  reference date 1 January 2023 (same year as the licences); values are census estimates (decimals).
+- Check: for the 100 départements, R7 totals equal the legal population 2023 (R1) exactly (largest gap 0), total
+  68,094,280. Population aged 60+: 10,337,283 women, 8,277,767 men.
+- Status: recorded and validated, **not used in the app** until the student approves (Seniors: licences of people
+  aged 60+ per 10 000 inhabitants aged 60+; Explore: women's licences per 10 000 women, men's per 10 000 men).
