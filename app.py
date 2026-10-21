@@ -10,8 +10,8 @@ st.set_page_config(page_title="Sport for all? France 2023", page_icon="🏅", la
 
 # Which sidebar filters each page uses: (département, federation). Others are shown as "not applied".
 PAGES = {
-    st.Page("pages/1_Hook.py", title="Hook", icon="🏅", default=True): (False, False),
-    st.Page("pages/2_Territories.py", title="Territories", icon="🗺️"): (True, True),
+    st.Page("app_pages/1_Hook.py", title="Hook", icon="🏅", default=True): (False, False),
+    st.Page("app_pages/2_Territories.py", title="Territories", icon="🗺️"): (True, True),
 }
 
 current = st.navigation(list(PAGES))

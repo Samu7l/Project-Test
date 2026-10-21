@@ -17,6 +17,9 @@ mainland, overseas = rates[~rates["is_overseas"]], rates[rates["is_overseas"]]
 top, bottom = mainland.iloc[0], mainland.iloc[-1]
 z_range = (rates["rate"].min(), rates["rate"].max())  # one colour scale for all maps (overseas included)
 MAYOTTE = "976"  # outside the geocoding scope: drawn in gray, no data
+# The map column is ~730 px wide on a 1440 px laptop screen: 780 px = ~40 px title + ~670 px map + ~70 px colour bar,
+# so the map area itself is roughly square.
+MAIN_MAP_HEIGHT = 780
 
 st.title("Territories")
 st.markdown(
@@ -45,7 +48,7 @@ with col_map:
     st.plotly_chart(
         viz.departement_map(mainland, geojson, selected,
                             ui.contrast_title(top["dep_name"], top["rate"], bottom["dep_name"], bottom["rate"]),
-                            z_range),
+                            z_range, height=MAIN_MAP_HEIGHT, scale_below=True),
         key="dep_map", on_select=lambda: select_from_map("dep_map"), selection_mode="points", width="stretch",
     )
 with col_zoom:
@@ -62,13 +65,13 @@ with col_zoom:
         with grid[i % 2]:
             st.plotly_chart(
                 viz.departement_map(overseas[overseas["dep"] == row.dep], om_geojson, selected,
-                                    f"{row.dep_name} · {ui.fmt_rate(row.rate)}", z_range, height=170,
+                                    f"{row.dep_name}<br>{ui.fmt_rate(row.rate)}", z_range, height=170,
                                     show_scale=False),
                 key=f"om_map_{row.dep}", on_select=lambda k=f"om_map_{row.dep}": select_from_map(k),
                 selection_mode="points", width="stretch",
             )
     with grid[len(overseas) % 2]:
-        st.plotly_chart(viz.no_data_map(om_geojson, MAYOTTE, "Mayotte · no data",
+        st.plotly_chart(viz.no_data_map(om_geojson, MAYOTTE, "Mayotte<br>no data",
                                         "Mayotte: no data (outside the geocoding scope)", height=170),
                         width="stretch")
     st.caption("Same colour scale as the main map. Mayotte (gray) is outside the geocoding scope.")

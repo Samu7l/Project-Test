@@ -18,12 +18,23 @@ CONTEXT = "#a8a7a1"     # gray dots: the départements that are not highlighted
 NO_DATA = "#bdbcb6"     # neutral gray: communes without a rate (below the population threshold)
 HIGHLIGHT = "#eb6834"   # outline of the selected département (a different hue from the blue ramp)
 REFERENCE = "#7a7974"   # reference line (France average)
-COLORBAR = dict(title=dict(text=f"licences per<br>{ui.fmt_num(10_000)} inh.", side="top"), thickness=12, len=0.7)
+COLORBAR = dict(title=dict(text=f"licences per<br>{ui.fmt_num(10_000)} inh.", side="top"), thickness=12, len=0.7,
+                tickformat=",")
+# Horizontal colour bar under a map, so that it does not take width from a square map.
+COLORBAR_BELOW = dict(title=dict(text=ui.RATE_UNIT, side="top"), orientation="h", thickness=12, len=0.6,
+                      x=0.5, xanchor="center", y=0, yanchor="top", tickformat=",")
+# Mercator keeps France's real proportions (roughly square); the default equirectangular projection
+# stretches it ~1.4× in width at this latitude.
+GEOS = dict(fitbounds="locations", visible=False, bgcolor="rgba(0,0,0,0)", projection_type="mercator")
 
 
 def _layout(fig: go.Figure, title: str, height: int) -> go.Figure:
-    """Shared layout: takeaway title, tight margins, '.' decimal mark and space thousands separator."""
-    fig.update_layout(title=dict(text=title, x=0, xanchor="left"), height=height,
+    """Shared layout: takeaway title, tight margins, '.' decimal mark and space thousands separator.
+
+    Small figures (height < 250, the overseas maps) get a smaller title so that it fits a narrow column.
+    """
+    font = dict(size=12) if height < 250 else {}
+    fig.update_layout(title=dict(text=title, x=0, xanchor="left", font=font), height=height,
                       margin=dict(l=0, r=0, t=60, b=0), separators="." + ui.THOUSANDS)
     return fig
 
@@ -40,10 +51,11 @@ def _hover(df: pd.DataFrame, name_col: str) -> tuple[pd.DataFrame, str]:
 
 
 def departement_map(df: pd.DataFrame, geojson: dict, selected: str, title: str, z_range: tuple[float, float],
-                    height: int = 620, show_scale: bool = True) -> go.Figure:
+                    height: int = 620, show_scale: bool = True, scale_below: bool = False) -> go.Figure:
     """Choropleth of départements by rate; the selected one is outlined.
 
     `z_range` fixes the colour scale so that the main map and the Île-de-France zoom use the same colours.
+    `scale_below` puts the colour bar horizontally under the map (used for the square main map).
     `customdata[4]` holds the département code (read back when the user clicks the map).
     """
     custom, template = _hover(df, "dep_name")
@@ -51,7 +63,8 @@ def departement_map(df: pd.DataFrame, geojson: dict, selected: str, title: str, 
     fig = go.Figure(go.Choropleth(
         geojson=geojson, featureidkey="properties.code", locations=df["dep"], z=df["rate"],
         zmin=z_range[0], zmax=z_range[1], customdata=custom, hovertemplate=template, colorscale=COLORSCALE,
-        marker_line_color="white", marker_line_width=0.5, showscale=show_scale, colorbar=COLORBAR,
+        marker_line_color="white", marker_line_width=0.5, showscale=show_scale,
+        colorbar=COLORBAR_BELOW if scale_below else COLORBAR,
     ))
     sel = df[df["dep"] == selected]
     if not sel.empty:
@@ -60,9 +73,12 @@ def departement_map(df: pd.DataFrame, geojson: dict, selected: str, title: str, 
             colorscale=[[0, "rgba(0,0,0,0)"], [1, "rgba(0,0,0,0)"]], showscale=False,
             marker_line_color=HIGHLIGHT, marker_line_width=3, hoverinfo="skip",
         ))
-    fig.update_geos(fitbounds="locations", visible=False, bgcolor="rgba(0,0,0,0)")
+    fig.update_geos(**GEOS)
     fig.update_layout(dragmode=False, clickmode="event+select")
-    return _layout(fig, title, height)
+    _layout(fig, title, height)
+    if scale_below:
+        fig.update_layout(margin=dict(l=0, r=0, t=40, b=70))
+    return fig
 
 
 def no_data_map(geojson: dict, code: str, title: str, hover: str, height: int) -> go.Figure:
@@ -72,7 +88,7 @@ def no_data_map(geojson: dict, code: str, title: str, hover: str, height: int) -
         colorscale=[[0, NO_DATA], [1, NO_DATA]], showscale=False, marker_line_color="white",
         marker_line_width=0.5, hovertemplate=f"{hover}<extra></extra>",
     ))
-    fig.update_geos(fitbounds="locations", visible=False, bgcolor="rgba(0,0,0,0)")
+    fig.update_geos(**GEOS)
     fig.update_layout(dragmode=False)
     return _layout(fig, title, height)
 
@@ -141,6 +157,6 @@ def commune_map(df: pd.DataFrame, geojson: dict, title: str) -> go.Figure:
             colorscale=COLORSCALE, marker_line_color="white", marker_line_width=0.3,
             customdata=custom, hovertemplate=template, colorbar=COLORBAR,
         ))
-    fig.update_geos(fitbounds="locations", visible=False, bgcolor="rgba(0,0,0,0)")
+    fig.update_geos(**GEOS)
     fig.update_layout(dragmode=False)
     return _layout(fig, title, 520)

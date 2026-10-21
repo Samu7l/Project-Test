@@ -66,4 +66,4 @@ st.markdown(
 - **Implications & limits**: where public effort could be targeted, and what the data cannot say.
 """
 )
-st.page_link("pages/2_Territories.py", label="Start with the territories map", icon="🗺️")
+st.page_link("app_pages/2_Territories.py", label="Start with the territories map", icon="🗺️")
