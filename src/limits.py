@@ -40,10 +40,17 @@ def limits(fed: pd.DataFrame, rates: pd.DataFrame, validation: pd.DataFrame) -> 
          "understated (see Implications)."),
         ("Women", "Shares = women ÷ (women + men); sex is reported for every licence. The federation ranking is "
          "national (all places, school sport included); the football map uses geocoded licences."),
-        ("Seniors", "The share of licences held by people aged 60+ partly reflects each département's age "
-         "structure: it is not a participation rate. The legal-population file has no sex or age; the INSEE census "
-         "2023 table by sex and age (same year) has been identified to compute rates per 10 000 people aged 60+ "
-         "and per 10 000 women / men, but is not used yet."),
+        ("Population by sex and age", "Seniors' rates (per 10 000 inhabitants aged 60+), the women's and men's maps "
+         "and the per-100 pyramid use the INSEE census 2023 by sex and single year of age, regrouped into the "
+         "licence age bands (1–4 without age 0; 80–99 without 100+). Census figures are estimates; a licence is "
+         "not a person, so a rate per 100 can exceed 100. The national pyramid counts licences from all places, "
+         "the population covers the 100 départements."),
+        ("Women by age", "The women-to-men comparison by age compares different age groups in 2023 (school sport "
+         "excluded), not the same people over time. It counts licences, not people, and club sport only: practice "
+         "outside clubs, which may matter more for young women, is not counted."),
+        ("Explore maps", "Women's and men's maps each have their own colour scale (compare geography, not levels); "
+         "scales are capped at the second-highest département when one département stands far above. No maps for "
+         "school sport. Small federations rest on a few licences per département."),
         ("Disability", f"Only {' and '.join(disability['name'])}: a lower bound, as many disabled athletes hold "
          "ordinary licences and the census does not record disability. No disabled population by département: "
          "never a share of disabled people. The map's colour scale is capped at the second-highest département; "

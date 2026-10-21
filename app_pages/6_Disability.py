@@ -32,7 +32,7 @@ st.info(
 cols = st.columns(len(disability) + 1)
 for col, row in zip(cols, disability.itertuples()):
     col.metric(row.name, ui.fmt_num(row.lic_total), help=f"Federation code {row.code}; all places.")
-cols[-1].metric(ui.RATE_UNIT.capitalize(), ui.fmt_rate(france), help="Both federations, geocoded licences.")
+cols[-1].metric(ui.first_upper(ui.RATE_UNIT), ui.fmt_rate(france), help="Both federations, geocoded licences.")
 ui.source_caption()
 
 second = rates.iloc[1]  # colour scale capped here so that one outlier does not wash out the map

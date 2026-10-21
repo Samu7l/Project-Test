@@ -192,7 +192,7 @@ ranks first of 100 départements in all four categories of places for disabled a
 ESAT). On the Disability page this is cited as a fact, and the link with Lozère's licence rate is phrased as a
 hypothesis ("may reflect"). The dataset metadata states no licence.
 
-## 13. Population by sex and age (identified, not used yet)
+## 13. Population by sex and age (R7, used)
 
 - **R1b (`DS_POPULATIONS_REFERENCE_2023_data.csv`) has no sex or age**: 106,065 rows × 6 columns (`GEO`,
   `GEO_OBJECT`, `FREQ`, `POPREF_MEASURE`, `TIME_PERIOD`, `OBS_VALUE`); one year (2023); levels COM, ARM, ARR, DEP,
@@ -202,5 +202,11 @@ hypothesis ("may reflect"). The dataset metadata states no licence.
   reference date 1 January 2023 (same year as the licences); values are census estimates (decimals).
 - Check: for the 100 départements, R7 totals equal the legal population 2023 (R1) exactly (largest gap 0), total
   68,094,280. Population aged 60+: 10,337,283 women, 8,277,767 men.
-- Status: recorded and validated, **not used in the app** until the student approves (Seniors: licences of people
-  aged 60+ per 10 000 inhabitants aged 60+; Explore: women's licences per 10 000 women, men's per 10 000 men).
+- **Used (approved by the student):** `data/processed/population_sex_age.parquet`, long format (dep, sex, age_band,
+  population; 100 départements × 2 sexes × 17 bands = 3,400 rows). Sex harmonised with the licence file (census M →
+  H). Bands rebuilt from single years exactly like the licence file: 1–4 = ages 1–4 (age 0 left out), 5-year bands,
+  80–99 = ages 80–99 (100+ left out). Values kept with decimals; rounded only for display.
+- Validation: bands + age 0 + 100+ = total by sex and département (max gap 0.0001); women + men = total (gap 0).
+- Uses: Seniors = licences of people aged 60+ per 10 000 inhabitants aged 60+ (the share of licences held by 60+
+  stays as a secondary view); Explore = women's licences per 10 000 women and men's per 10 000 men by département,
+  and a pyramid toggle "licences per 100 people of that age and sex".

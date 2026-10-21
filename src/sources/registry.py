@@ -37,7 +37,7 @@ SOURCES = [
     ("R7", "Census 2023: population by sex and single year of age (POP1)", "INSEE (recensement de la population)",
      "Licence Ouverte", "https://www.insee.fr/fr/statistiques/9006235",
      "RP 2023, reference date 1/1/2023; published 25/06/2026",
-     "Identified, not used yet (awaiting approval): denominators by sex and age (Seniors, Explore)"),
+     "Population by sex and age: Seniors rates (60+), women's / men's maps and per-100 pyramid (Explore)"),
     ("R6", "Panorama statistique 2024 « Handicap et invalidité » (sheet 11)", "DREES (FINESS; INSEE)",
      "not stated in the dataset metadata",
      "https://data.drees.solidarites-sante.gouv.fr/explore/dataset/panorama-statistique-handicap-et-invalidite/",

@@ -58,15 +58,24 @@ RATE_UNIT = f"licences per {fmt_num(indicators.PER)} inhabitants"
 MIN_POP_LABEL = fmt_num(indicators.MIN_COMMUNE_POP)
 
 
-def contrast_title(high_name: str, high: float, low_name: str, low: float) -> str:
+def contrast_title(high_name: str, high: float, low_name: str, low: float, measure: str = "licence rate",
+                   unit: str | None = None) -> str:
     """'A has 2.5× the licence rate of B'.
 
     When the lowest rate is zero or tiny (ratio > 10, e.g. a handful of licences), a ratio would mislead:
-    the title gives the range instead.
+    the title gives the range instead (with `unit`, default RATE_UNIT).
     """
     if low == 0 or high / low > 10:
-        return f"From {fmt_rate(low)} in {low_name} to {fmt_rate(high)} in {high_name} ({RATE_UNIT})"
-    return f"{high_name} has {fmt_num(high / low, 1)}× the licence rate of {low_name}"
+        return f"From {fmt_rate(low)} in {low_name} to {fmt_rate(high)} in {high_name} ({unit or RATE_UNIT})"
+    return f"{high_name} has {fmt_num(high / low, 1)}× the {measure} of {low_name}"
+
+
+def first_upper(text: str) -> str:
+    """Capitalise the first letter only ('all federations' -> 'All federations'; 'FF de Football' unchanged).
+
+    str.capitalize() would lowercase the rest ('Ff de football').
+    """
+    return text[:1].upper() + text[1:]
 
 
 def age_label(band: str) -> str:

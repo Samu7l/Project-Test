@@ -205,17 +205,32 @@ def checks_population(pop_com: pd.DataFrame, pop_dep: pd.DataFrame) -> list[Chec
     ]
 
 
-def checks_census_age_sex(pop_dep: pd.DataFrame) -> list[Check]:
-    """INSEE census 2023 by sex × age (R7, identified, not used yet): totals vs the legal population 2023."""
-    path = RAW / "insee_rp2023" / "DS_RP_TD_POPULATION_AGESEX_PRINC_2023.parquet"
-    if not path.exists():
-        return []
-    rp = pd.read_parquet(path, filters=[("GEO_OBJECT", "==", "DEP"), ("AGE", "==", "_T"), ("SEX", "==", "_T")])
-    rp = rp.astype({"GEO": str}).set_index("GEO")["OBS_VALUE"]
-    gap = (rp.reindex(pop_dep["dep"]).to_numpy() - pop_dep["population"].to_numpy())
-    return [Check("Population", "Census 2023 by sex × age: département totals = legal population 2023",
-                  f"max gap {abs(gap).max():.2f}", "≤ 1", bool(abs(gap).max() <= 1),
-                  "R7, same year as the licences; not used in the app yet")]
+def checks_census_age_sex(pop_dep: pd.DataFrame, pop_sex_age: pd.DataFrame) -> list[Check]:
+    """INSEE census 2023 by sex × age (R7) vs the legal population, and the rebuilt licence age bands."""
+    from src.sources import census
+
+    raw = census.read_departements(RAW / "insee_rp2023" / "DS_RP_TD_POPULATION_AGESEX_PRINC_2023.parquet")
+    raw = raw[raw["dep"].isin(pop_dep["dep"])]
+    total = raw[(raw["age"] == "_T")].pivot_table(index="dep", columns="sex", values="population", aggfunc="sum")
+    gap_legal = (total["_T"].reindex(pop_dep["dep"]).to_numpy() - pop_dep["population"].to_numpy())
+    # bands + age 0 + 100+ = total, by sex and département
+    outside = raw[raw["age"].isin(["Y0", "Y_GE100"]) & raw["sex"].isin(["F", "M"])].assign(
+        sex=lambda d: d["sex"].map(census.SEX)).groupby(["dep", "sex"])["population"].sum()
+    bands = pop_sex_age.groupby(["dep", "sex"])["population"].sum()
+    by_sex = total[["F", "M"]].rename(columns=census.SEX).stack()
+    gap_bands = (bands + outside - by_sex.reindex(bands.index)).abs().max()
+    gap_sex = (total["F"] + total["M"] - total["_T"]).abs().max()
+    n_bands = pop_sex_age["age_band"].nunique()
+    return [
+        Check("Population", "Census 2023 by sex × age: département totals = legal population 2023",
+              f"max gap {abs(gap_legal).max():.2f}", "≤ 1", bool(abs(gap_legal).max() <= 1),
+              "R7, same year as the licences"),
+        Check("Population", f"Census: {n_bands} licence age bands + age 0 + 100+ = total (by sex, by département)",
+              f"max gap {gap_bands:.4f}", "≤ 0.01", bool(gap_bands <= 0.01),
+              f"{len(bands)} département × sex cells"),
+        Check("Population", "Census: women + men = total (by département)", f"max gap {gap_sex:.4f}", "≤ 0.01",
+              bool(gap_sex <= 0.01)),
+    ]
 
 
 def checks_qpv(pop_dep: pd.DataFrame, pop_qpv: pd.DataFrame) -> list[Check]:
@@ -248,7 +263,7 @@ def run_all() -> pd.DataFrame:
               + checks_joins(dep_fed, com_fed, clubs_com, pop_com, pop_dep)
               + checks_population(pop_com, pop_dep)
               + checks_qpv(pop_dep, load("population_qpv"))
-              + checks_census_age_sex(pop_dep))
+              + checks_census_age_sex(pop_dep, load("population_sex_age")))
     res = pd.DataFrame([asdict(c) for c in checks])
     # Same number style as the app: space as thousands separator ("16 535 056"), applied to the text columns.
     for col in ["observed", "expected", "note"]:

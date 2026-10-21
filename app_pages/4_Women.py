@@ -51,6 +51,26 @@ with st.expander(f"Table: all {len(ranking)} federations"):
               "lic_f": "Women", "lic_h": "Men", "share": "Women's share"},
              {"lic_total": ui.fmt_num, "lic_f": ui.fmt_num, "lic_h": ui.fmt_num, "share": ui.fmt_pct})
 
+# --- Gap by age (age groups compared in 2023, school sport excluded) ----------------------------------------------
+YOUNG, ADULT = "10 à 14 ans", "20 à 24 ans"
+st.header("The gap is widest among young adults")
+by_age = indicators.women_to_men_by_age(indicators.pyramid_rates(
+    indicators.pyramid(data.table("pyramid"), indicators.non_school_codes(fed)), data.table("population_sex_age")))
+young, adult = by_age.set_index("age_band").loc[YOUNG], by_age.set_index("age_band").loc[ADULT]
+widest = by_age.loc[by_age["ratio"].idxmin()]  # age band where women's rate is furthest below men's
+st.plotly_chart(viz.ratio_by_age(
+    by_age, [YOUNG, ADULT],
+    f"Per head, girls aged {ui.age_label(YOUNG)} hold {ui.fmt_num(young['ratio'] * 100)} licences per 100 held by "
+    f"boys; at {ui.age_label(ADULT)}, {ui.fmt_num(adult['ratio'] * 100)}; widest gap at "
+    f"{ui.age_label(widest['age_band'])} ({ui.fmt_num(widest['ratio'] * 100)})"), width="stretch")
+ui.source_caption(
+    "INSEE census 2023, population by sex and age",
+    "Women's licences per 100 women ÷ men's licences per 100 men, by age band, all federations without school sport "
+    "(UNSS, USEP). Each point is a different age group in 2023, not the same people followed over time. Licences, "
+    "not people; club sport only: practice outside clubs (gyms, running alone, informal sport), which may matter "
+    "more for young women, is not counted.",
+)
+
 # --- Football by département --------------------------------------------------------------------------------------
 st.header("Football: women's share by département")
 shares = indicators.departement_shares(data.table("lic_dep_fed"), data.table("population_dep"), [FOOTBALL],

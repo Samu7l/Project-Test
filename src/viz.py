@@ -13,6 +13,9 @@ from src import ui
 # Sequential blue ramp (light = few licences, dark = many): one hue, light -> dark.
 BLUES = ["#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#256abf", "#184f95", "#0d366b"]
 COLORSCALE = [[i / (len(BLUES) - 1), c] for i, c in enumerate(BLUES)]
+# Second sequential ramp (ColorBrewer YlOrBr, yellow -> brown), for women's rates beside the blue men's map.
+YLORBR = ["#fff7bc", "#fee391", "#fec44f", "#fe9929", "#ec7014", "#cc4c02", "#8c2d04"]
+COLORSCALE_WOMEN = [[i / (len(YLORBR) - 1), c] for i, c in enumerate(YLORBR)]
 BAR = "#2a78d6"
 CONTEXT = "#a8a7a1"     # gray dots: the départements that are not highlighted
 NO_DATA = "#bdbcb6"     # neutral gray: communes without a rate (below the population threshold)
@@ -58,7 +61,8 @@ def _colorbar(title: str, below: bool, suffix: str) -> dict:
 
 def departement_map(df: pd.DataFrame, geojson: dict, selected: str, title: str, z_range: tuple[float, float],
                     colorbar_title: str = ui.RATE_UNIT, tick_suffix: str = "", height: int = 620,
-                    show_scale: bool = True, scale_below: bool = False) -> go.Figure:
+                    show_scale: bool = True, scale_below: bool = False,
+                    colorscale: list | None = None) -> go.Figure:
     """Choropleth of départements for any indicator; the selected département is outlined.
 
     `df` columns: dep, value (colour), hover (pre-formatted HTML text).
@@ -68,7 +72,7 @@ def departement_map(df: pd.DataFrame, geojson: dict, selected: str, title: str, 
     fig = go.Figure(go.Choropleth(
         geojson=geojson, featureidkey="properties.code", locations=df["dep"], z=df["value"],
         zmin=z_range[0], zmax=z_range[1], customdata=df[["hover", "dep"]],
-        hovertemplate="%{customdata[0]}<extra></extra>", colorscale=COLORSCALE,
+        hovertemplate="%{customdata[0]}<extra></extra>", colorscale=colorscale or COLORSCALE,
         marker_line_color="white", marker_line_width=0.5, showscale=show_scale,
         colorbar=_colorbar(colorbar_title, scale_below, tick_suffix),
     ))
@@ -83,7 +87,7 @@ def departement_map(df: pd.DataFrame, geojson: dict, selected: str, title: str, 
     fig.update_layout(dragmode=False, clickmode="event+select")
     _layout(fig, title, height)
     if scale_below:
-        fig.update_layout(margin=dict(l=0, r=0, t=40, b=70))
+        fig.update_layout(margin=dict(l=0, r=0, t=70 if "<br>" in title else 40, b=70))
     return fig
 
 
@@ -212,23 +216,27 @@ def share_bars(df: pd.DataFrame, reference: float, focus: str | None, title: str
     return _layout(fig, title, 120 + 26 * len(df))
 
 
-def pyramid(df: pd.DataFrame, title: str) -> go.Figure:
-    """Age pyramid: women to the left (negative bars), men to the right; ticks show absolute counts."""
+def pyramid(df: pd.DataFrame, title: str, value: str = "licences", unit: str = "licences",
+            decimals: int = 0) -> go.Figure:
+    """Age pyramid: women to the left (negative bars), men to the right; ticks show absolute values.
+
+    `value` is the column to plot ('licences', or 'per_100' for licences per 100 people of that age and sex).
+    """
     women = df[df["sex"] == "F"].sort_values("age_order")
     men = df[df["sex"] == "H"].sort_values("age_order")
     fig = go.Figure()
     for part, sign, name, color in [(women, -1, "Women", WOMEN), (men, 1, "Men", MEN)]:
         fig.add_trace(go.Bar(
-            y=part["age_band"].map(ui.age_label), x=sign * part["licences"], orientation="h", name=name,
-            marker_color=color,
-            customdata=part["licences"].map(ui.fmt_num),
-            hovertemplate=f"<b>{name}, %{{y}}</b><br>%{{customdata}} licences<extra></extra>",
+            y=part["age_band"].map(ui.age_label), x=sign * part[value], orientation="h", name=name,
+            marker_color=color, customdata=part[value].map(lambda v: ui.fmt_num(v, decimals)),
+            hovertemplate=f"<b>{name}, %{{y}}</b><br>%{{customdata}} {unit}<extra></extra>",
         ))
-    top = df["licences"].max()
+    top = df[value].max()
     ticks = _nice_ticks(top)
+    tick_dec = 0 if all(float(t).is_integer() for t in ticks) else 1
     fig.update_xaxes(tickvals=[-t for t in ticks[::-1]] + ticks[1:],
-                     ticktext=[ui.fmt_num(t) for t in ticks[::-1]] + [ui.fmt_num(t) for t in ticks[1:]],
-                     range=[-top * 1.08, top * 1.08], title_text="licences (women ← · → men)")
+                     ticktext=[ui.fmt_num(t, tick_dec) for t in ticks[::-1]] + [ui.fmt_num(t, tick_dec) for t in ticks[1:]],
+                     range=[-top * 1.08, top * 1.08], title_text=f"{unit} (women ← · → men)")
     fig.update_yaxes(title_text="age band", categoryorder="array",
                      categoryarray=women["age_band"].map(ui.age_label).tolist())
     fig.update_layout(barmode="overlay", bargap=0.1, legend=dict(orientation="h", y=1.02, x=0, yanchor="bottom"))
@@ -245,3 +253,24 @@ def _nice_ticks(top: float, n: int = 3) -> list[float]:
     mag = 10 ** int(f"{raw:e}".split("e")[1])
     step = next(m * mag for m in (1, 2, 5, 10) if m * mag >= raw)
     return [i * step for i in range(int(top // step) + 1)]
+
+
+def ratio_by_age(df: pd.DataFrame, highlight: list[str], title: str) -> go.Figure:
+    """Women's licence rate as a % of men's, by age band (line); 100 % = parity; `highlight` bands labelled."""
+    labels = df["age_band"].map(ui.age_label)
+    hover = ("<b>" + labels + "</b><br>Women's rate = " + (df["ratio"] * 100).map(lambda v: ui.fmt_num(v)) + " % of men's"
+             + "<br>" + df["women_per_100"].map(lambda v: ui.fmt_num(v, 1)) + " licences per 100 women · "
+             + df["men_per_100"].map(lambda v: ui.fmt_num(v, 1)) + " per 100 men")
+    fig = go.Figure(go.Scatter(x=labels, y=df["ratio"] * 100, mode="lines+markers", line=dict(color=WOMEN, width=2),
+                               marker=dict(size=8, color=WOMEN), customdata=hover,
+                               hovertemplate="%{customdata}<extra></extra>", showlegend=False))
+    hi = df[df["age_band"].isin(highlight)]
+    fig.add_trace(go.Scatter(x=hi["age_band"].map(ui.age_label), y=hi["ratio"] * 100, mode="markers+text",
+                             marker=dict(size=13, color=WOMEN), text=(hi["ratio"] * 100).map(lambda v: f"<b>{ui.fmt_num(v)} %</b>"),
+                             textposition="top center", hoverinfo="skip", showlegend=False))
+    fig.add_hline(y=100, line_dash="dot", line_color=REFERENCE, annotation_text="parity (100 %)",
+                  annotation_position="top left")
+    fig.update_xaxes(title_text="age band in 2023", type="category")
+    fig.update_yaxes(title_text="women's licence rate as % of men's", ticksuffix=" %", rangemode="tozero",
+                     range=[0, max(110, df["ratio"].max() * 115)])
+    return _layout(fig, title, 380)

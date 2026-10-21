@@ -139,3 +139,54 @@ def pyramid(pyr: pd.DataFrame, codes: list[str]) -> pd.DataFrame:
 def all_codes(fed: pd.DataFrame) -> list[str]:
     """Every federation that issued licences (national views: Women ranking, Explore)."""
     return fed.loc[fed["lic_total"] > 0, "code"].tolist()
+
+
+# --- Rates with population by sex and age (INSEE census 2023) ------------------------------------------------------
+SENIOR_BANDS = ["60 à 64 ans", "65 à 69 ans", "70 à 74 ans", "75 à 79 ans", "80 à 99 ans"]
+
+
+def senior_rates(lic_dep_fed: pd.DataFrame, pop_dep: pd.DataFrame, pop_sex_age: pd.DataFrame,
+                 codes: list[str]) -> pd.DataFrame:
+    """By département: licences of people aged 60+ per 10 000 inhabitants aged 60+ (bands 60–64 … 80–99)."""
+    lic = lic_dep_fed[lic_dep_fed["code"].isin(codes)].groupby("dep")["age_60p"].sum()
+    pop60 = pop_sex_age[pop_sex_age["age_band"].isin(SENIOR_BANDS)].groupby("dep")["population"].sum()
+    df = pop_dep.drop(columns="population").assign(
+        licences=pop_dep["dep"].map(lic).fillna(0).astype("int64"), population=pop_dep["dep"].map(pop60))
+    df["rate"] = rate(df["licences"], df["population"])
+    df["rank"] = df["rate"].rank(ascending=False, method="min").astype(int)
+    return df.sort_values("rank").reset_index(drop=True)
+
+
+def sex_rates(lic_dep_fed: pd.DataFrame, pop_dep: pd.DataFrame, pop_sex_age: pd.DataFrame, codes: list[str],
+              sex: str) -> pd.DataFrame:
+    """By département: women's licences per 10 000 women (sex='F') or men's per 10 000 men (sex='H')."""
+    col = {"F": "f", "H": "h"}[sex]
+    lic = lic_dep_fed[lic_dep_fed["code"].isin(codes)].groupby("dep")[col].sum()
+    pop = pop_sex_age[pop_sex_age["sex"] == sex].groupby("dep")["population"].sum()
+    df = pop_dep.drop(columns="population").assign(
+        licences=pop_dep["dep"].map(lic).fillna(0).astype("int64"), population=pop_dep["dep"].map(pop))
+    df["rate"] = rate(df["licences"], df["population"])
+    df["rank"] = df["rate"].rank(ascending=False, method="min").astype(int)
+    return df.sort_values("rank").reset_index(drop=True)
+
+
+def pyramid_rates(pyr: pd.DataFrame, pop_sex_age: pd.DataFrame) -> pd.DataFrame:
+    """Pyramid with licences per 100 people of that age and sex (population of the 100 départements)."""
+    pop = pop_sex_age.groupby(["sex", "age_band"], as_index=False)["population"].sum()
+    out = pyr.merge(pop, on=["sex", "age_band"], how="left")
+    out["per_100"] = out["licences"] / out["population"] * 100
+    return out
+
+
+def non_school_codes(fed: pd.DataFrame) -> list[str]:
+    """Every federation with licences except school sport recorded at the school (UNSS, USEP)."""
+    return fed.loc[(fed["lic_total"] > 0) & ~fed["is_club_address"], "code"].tolist()
+
+
+def women_to_men_by_age(pyr_rates: pd.DataFrame) -> pd.DataFrame:
+    """By age band: licences per 100 women, per 100 men, and women's rate as a share of men's (age groups in 2023)."""
+    known = pyr_rates[pyr_rates["age_band"] != "NR"]
+    wide = known.pivot_table(index=["age_order", "age_band"], columns="sex", values="per_100").reset_index()
+    wide = wide.rename(columns={"F": "women_per_100", "H": "men_per_100"})
+    wide["ratio"] = wide["women_per_100"] / wide["men_per_100"]
+    return wide.sort_values("age_order").reset_index(drop=True)

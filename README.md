@@ -11,11 +11,11 @@ INJEP-MEDES, data.gouv.fr). Individual project, EFREI Data & AI — Samuel Molli
 | Territories | Licences per 10 000 inhabitants by département (map, Île-de-France zoom, overseas), top and bottom 5, commune drill-down |
 | Priority neighbourhoods | Share of licences held by QPV residents and of clubs located in QPV, against the share of the population living in QPV |
 | Women | Federations ranked by women's share; football's women's share by département |
-| Seniors | Share of licences held by people aged 60+, by département |
+| Seniors | Licences of people aged 60+ per 10 000 inhabitants aged 60+, by département |
 | Disability | Handisport + Sport Adapté licences per 10 000 inhabitants (a lower bound) |
-| Explore | Age pyramid (women / men) for any federation |
+| Explore | Age pyramid (counts or licences per 100 people of that age and sex) and women's / men's licences per 10 000 women / men by département, for any federation |
 | Implications | Five takeaways, where public effort could be targeted, what the data cannot say |
-| Data & Limits | Sources, pipeline, validation results (31 checks), full list of limits |
+| Data & Limits | Sources, pipeline, validation results (33 checks), full list of limits |
 
 Every number in the text is computed from the data. Sidebar filters (département, federation) are shared by all
 pages; a filter that does not apply to a page is shown as "not applied". Maps are clickable.
@@ -42,7 +42,7 @@ The app reads only `data/processed/` (shipped with the code, ~43 MB): no downloa
 
 ```bash
 python -m src.build      # downloads the raw files into data/raw/ (~600 MB, once) and rebuilds data/processed/
-python -m src.validate   # 31 checks against INJEP published figures, sums and joins; saves the results for the app
+python -m src.validate   # 33 checks against INJEP published figures, sums and joins; saves the results for the app
 pytest                   # unit tests + saved validation results (the full re-run needs data/raw/)
 ```
 
@@ -54,6 +54,7 @@ Full table with versions: [DATA_SOURCES.md](DATA_SOURCES.md) (also shown on the 
 
 - Licences and clubs 2023, federation list — INJEP-MEDES, geocoded by INSEE: [data.gouv.fr](https://www.data.gouv.fr/datasets/donnees-geocodees-issues-du-recensement-des-licences-et-clubs-aupres-des-federations-sportives-agreees-par-le-ministere-charge-des-sports) (Licence Ouverte)
 - Legal population 2023 and commune outlines — INSEE / IGN via [geo.api.gouv.fr](https://geo.api.gouv.fr)
+- Population by sex and age, census 2023 — [INSEE](https://www.insee.fr/fr/statistiques/9006235)
 - Département outlines — IGN Admin Express via [france-geojson](https://github.com/gregoiredavid/france-geojson)
 - Population of the 2024 QPV — [INSEE](https://www.insee.fr/fr/statistiques/8210600?sommaire=8186144)
 - Commune events (COG 2026) — [INSEE](https://www.insee.fr/fr/information/8740222)
@@ -79,7 +80,7 @@ src/
   geo.py               commune codes (COG 2024) -> current communes (COG 2026)
   build.py             raw -> processed tables
   indicators.py        rates, shares, rankings (pure pandas)
-  validate.py          31 checks (published figures, sums, joins)
+  validate.py          33 checks (published figures, sums, joins)
   limits.py            limits shown on the Data & Limits page
   viz.py, ui.py        Plotly figures; Streamlit components, number formatting, sidebar
   data.py              cached loaders (st.cache_data)
@@ -92,6 +93,6 @@ tests/                 pytest
 
 - A **licence is not a person**: one person can hold several licences.
 - School sport (UNSS, USEP) is recorded at the school's address: excluded from territorial views, kept in national totals.
-- Seniors' shares partly reflect each département's age structure; disability counts are a lower bound.
+- Rates by sex and age use census 2023 estimates; disability counts are a lower bound.
 - The QPV benchmark uses QPV populations from 2020/2021; QPV residents are younger, so the gap is probably understated.
 - 2023 only: no trends. Full list on the Data & Limits page.

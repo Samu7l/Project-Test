@@ -60,7 +60,7 @@ st.header(f"Inside {dep_row['dep_name']} ({dep})")
 m1, m2, m3 = st.columns(3)
 gap = dep_row["rate"] - france
 delta, delta_format = ui.metric_delta(gap, ui.rate_decimals(dep_row["rate"]))
-m1.metric(ui.RATE_UNIT.capitalize(), ui.fmt_rate(dep_row["rate"]), delta=delta, format=delta_format,
+m1.metric(ui.first_upper(ui.RATE_UNIT), ui.fmt_rate(dep_row["rate"]), delta=delta, format=delta_format,
           delta_description="vs France", delta_color="normal")
 m2.metric("Rank among 100 départements", f"{dep_row['rank']} / 100")
 m3.metric(f"Communes with ≥ {ui.MIN_POP_LABEL} inhabitants", f"{ui.fmt_num(len(rated))} / {ui.fmt_num(len(communes))}")

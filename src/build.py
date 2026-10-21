@@ -19,6 +19,7 @@ from src.sources import federations as src_fed
 from src.sources import geometry as src_geom
 from src.sources import licences as src_lic
 from src.sources import population as src_pop
+from src.sources import census as src_census
 from src.sources import drees as src_drees
 from src.sources import qpv as src_qpv
 
@@ -45,9 +46,7 @@ RAW_FILES = {
     "v_mvt_commune_2026.csv": geo.MVT_URL,
     "insee_qpv2024/pop_QPV24.xlsx": src_qpv.URL,
     "drees/Panorama_statistique_2024.xlsx": src_drees.URL,
-    # R7, identified but not used yet (population by sex and age, census 2023):
-    "insee_rp2023/DS_RP_TD_POPULATION_AGESEX_PRINC_2023.parquet":
-        "https://www.insee.fr/fr/statistiques/fichier/9006235/DS_RP_TD_POPULATION_AGESEX_PRINC_2023.parquet",
+    "insee_rp2023/DS_RP_TD_POPULATION_AGESEX_PRINC_2023.parquet": src_census.URL,
 }
 # Accented names inside the INJEP zips break `unzip` on macOS; we extract them under ASCII names.
 INJEP_MEMBERS = {
@@ -192,6 +191,9 @@ def main() -> None:
     equipment = src_drees.read_equipment(RAW / "drees" / "Panorama_statistique_2024.xlsx", deps)
     tables = {"federations": fed, "population_dep": deps, "population_com": communes, "population_qpv": qpv,
               "drees_disabled_adults": equipment,
+              "population_sex_age": src_census.population_by_band(
+                  src_census.read_departements(RAW / "insee_rp2023" / "DS_RP_TD_POPULATION_AGESEX_PRINC_2023.parquet"),
+                  deps["dep"].tolist()),
               **lic_tables, **club_tables}
     print("tables:")
     save(tables)

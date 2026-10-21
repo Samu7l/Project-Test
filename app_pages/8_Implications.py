@@ -26,10 +26,19 @@ foot = fed.set_index("code").loc[FOOTBALL]
 foot_share = foot["lic_f"] / (foot["lic_f"] + foot["lic_h"])
 foot_dep = indicators.departement_shares(lic_dep_fed, pop_dep, [FOOTBALL], "f", "f+h")
 foot_low = foot_dep[~foot_dep["is_overseas"]].nsmallest(3, "share")
+by_age = indicators.women_to_men_by_age(indicators.pyramid_rates(
+    indicators.pyramid(data.table("pyramid"), indicators.non_school_codes(fed)), data.table("population_sex_age")))
+ratio_young, ratio_adult = (by_age.set_index("age_band").loc[b, "ratio"] for b in ("10 à 14 ans", "20 à 24 ans"))
+widest = by_age.loc[by_age["ratio"].idxmin()]
+older = by_age[by_age["age_order"] > widest["age_order"]]
+older_peak = older.loc[older["ratio"].idxmax()] if len(older) else None
+higher_again = (f"; it is higher again in older age groups ({ui.fmt_num(older_peak['ratio'] * 100)} at "
+                f"{ui.age_label(older_peak['age_band'])})"
+                if older_peak is not None and older_peak["ratio"] > widest["ratio"] + 0.1 else "")
 # Seniors
-seniors = indicators.departement_shares(lic_dep_fed, pop_dep, geo_codes, "age_60p", "age_known")
-senior_share = seniors["num"].sum() / seniors["den"].sum()
-sen_main = seniors[~seniors["is_overseas"]].sort_values("share")
+seniors = indicators.senior_rates(lic_dep_fed, pop_dep, data.table("population_sex_age"), geo_codes)
+senior_rate = indicators.national_rate(seniors)
+sen_main = seniors[~seniors["is_overseas"]]
 # Disability
 dis_codes = fed.loc[fed["is_disability"], "code"].tolist()
 dis = indicators.departement_rates(lic_dep_fed, pop_dep, dis_codes)
@@ -53,10 +62,14 @@ st.markdown(
    **{ui.fmt_pct(nat_qpv['lic_share'])}** of licences; {ui.fmt_pct(nat_qpv['club_share'])} of active clubs and EPA are
    located in a QPV.
 3. **Women** — Women hold {ui.fmt_pct(summary.women_share)} of all licences and only **{ui.fmt_pct(foot_share)}** in
-   football, the largest federation.
-4. **Seniors** — People aged 60+ hold {ui.fmt_pct(senior_share)} of licences, from {ui.fmt_pct(sen_main.iloc[0]['share'])}
-   in {sen_main.iloc[0]['dep_name']} to {ui.fmt_pct(sen_main.iloc[-1]['share'])} in {sen_main.iloc[-1]['dep_name']}
-   (a share that partly reflects each département's age structure).
+   football, the largest federation. The gap is widest among young adults: per head, girls aged 10–14 hold
+   {ui.fmt_num(ratio_young * 100)} licences per 100 held by boys, women aged 20–24 hold
+   **{ui.fmt_num(ratio_adult * 100)}** per 100 held by men, and the lowest value is at
+   {ui.age_label(widest['age_band'])} ({ui.fmt_num(widest['ratio'] * 100)}){higher_again} (age groups compared in
+   2023, school sport excluded).
+4. **Seniors** — France counts **{ui.fmt_rate(senior_rate)}** licences per {ui.fmt_num(indicators.PER)} inhabitants
+   aged 60+, from {ui.fmt_rate(sen_main.iloc[-1]['rate'])} in {sen_main.iloc[-1]['dep_name']} to
+   {ui.fmt_rate(sen_main.iloc[0]['rate'])} in {sen_main.iloc[0]['dep_name']} (mainland France).
 5. **Disability** — The two disability federations count **{ui.fmt_rate(dis_france)}** licences per
    {ui.fmt_num(indicators.PER)} inhabitants, a lower bound of disabled people's organised sport.
 """
@@ -90,8 +103,8 @@ st.markdown(
   {ui.fmt_pct(registry.QPV_UNDER_25, 0)} of QPV residents are under 25, against {ui.fmt_pct(registry.URBAN_UNDER_25, 0)}
   in the surrounding urban areas (Insee Première n° 2008, 2024). Since people under 20 hold
   {ui.fmt_pct(under_20)} of licences, a benchmark adjusted for age would probably make the QPV gap larger.
-- **Participation rates by age or disability.** Our sources give no population by age, and no disabled population
-  by département: seniors and disability figures are shares or lower bounds, not participation rates.
+- **Participation of disabled people.** There is no disabled population by département in our sources: disability
+  figures are lower bounds per inhabitant, not participation rates.
 - **Trends.** 2023 only.
 """
 )
