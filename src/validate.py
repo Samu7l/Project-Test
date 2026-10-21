@@ -204,6 +204,26 @@ def checks_population(pop_com: pd.DataFrame, pop_dep: pd.DataFrame) -> list[Chec
     ]
 
 
+def checks_qpv(pop_dep: pd.DataFrame, pop_qpv: pd.DataFrame) -> list[Check]:
+    """QPV codes of the licence and club files vs the INSEE QPV 2024 population file."""
+    lic = pd.read_csv(RAW / "lic-data-2023.csv", sep=";", encoding="utf-8-sig", dtype=str,
+                      usecols=["Code QPV", "Statut géo"])
+    codes = set(lic.loc[lic["Code QPV"].str.match(r"^Q[NP]"), "Code QPV"])
+    clubs = pd.read_csv(RAW / "clubs-data-2023.csv", sep=";", encoding="utf-8-sig", dtype=str, usecols=["Code QPV"])
+    club_codes = set(clubs.loc[clubs["Code QPV"].str.match(r"^Q[NP]"), "Code QPV"])
+    known = set(pop_qpv["qpv"])
+    share = pop_qpv["population"].sum() / pop_dep["population"].sum()
+    return [
+        Check("QPV", "Licence QPV codes found in INSEE QPV 2024 file", f"{len(codes & known)} / {len(codes)}",
+              f"{len(codes)} / {len(codes)}", codes <= known, "all codes are 2024 QPV (QN…)"),
+        Check("QPV", "Club QPV codes found in INSEE QPV 2024 file", f"{len(club_codes & known)} / {len(club_codes)}",
+              f"{len(club_codes)} / {len(club_codes)}", club_codes <= known),
+        Check("QPV", "QPV in the study area with at least one licence", f"{len(codes & known)} / {len(known)}",
+              "information", True, f"QPV population {pop_qpv['population'].sum():,} = {share:.2%} of the population "
+                                   "(QPV pop. 2020/2021, total pop. 2023)"),
+    ]
+
+
 def run_all() -> pd.DataFrame:
     """Run every check and return them as a DataFrame."""
     fed, dep_fed, com_fed, pyramid = load("federations"), load("lic_dep_fed"), load("lic_com_fed"), load("pyramid")
@@ -212,7 +232,8 @@ def run_all() -> pd.DataFrame:
     checks = (checks_published(fed, dep_fed)
               + checks_internal(fed, dep_fed, com_fed, pyramid, clubs_dep, clubs_com)
               + checks_joins(dep_fed, com_fed, clubs_com, pop_com, pop_dep)
-              + checks_population(pop_com, pop_dep))
+              + checks_population(pop_com, pop_dep)
+              + checks_qpv(pop_dep, load("population_qpv")))
     return pd.DataFrame([asdict(c) for c in checks])
 
 

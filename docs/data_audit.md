@@ -17,6 +17,7 @@ Raw files were downloaded on 2026-10-20 and are not committed (`data/raw/` is gi
 | R2b | `departement-976-mayotte.geojson` | same repository as R2 (Mayotte outline only, drawn in gray: no data; geo.api has no outline for 976) | Licence Ouverte (IGN Admin Express) | — |
 | R3 | `communes_contours/{dep}.geojson` | `https://geo.api.gouv.fr/departements/{code}/communes?format=geojson&geometry=contour` | Licence Ouverte | 100 files |
 | R4 | `geoapi_departements.json`, `geoapi_regions.json` | geo.api.gouv.fr (names, region codes) | Licence Ouverte | — |
+| R5 | `insee_qpv2024/pop_QPV24.xlsx` | INSEE, "Populations municipales des quartiers prioritaires 2024" (insee.fr/fr/statistiques/8210600, online 10/07/2025): one row per 2024 QPV with its département and municipal population | Licence Ouverte | — |
 | G1 | `v_mvt_commune_2026.csv` | INSEE COG 2026, commune events since 1943 | Licence Ouverte | — |
 | V1 | `injep_2023/` (licences, clubs, federation families) | injep.fr, 2023 census results, data at 11/07/2024 | Licence Ouverte | — |
 | V2 | `injep_2024/` (history 2002–2024) | injep.fr, 2024 census results (July 2025) with **revised 2023 figures** | Licence Ouverte | — |
@@ -160,6 +161,17 @@ Département codes: 100 in geocoded licences (`01`–`95` with `2A`/`2B`, `971`�
 - **Population:** geo.api = INSEE PMUN 2023 for every commune and département; total 68,094,280 = INSEE France
   excluding Mayotte.
 
+## 10b. QPV benchmark (Phase 5)
+
+- R5 lists 1,609 QPV (decrees 2024-806 for mainland France and 2024-1212 overseas). Keeping the 100 départements of the
+  study area leaves **1,476 QPV, 5,737,536 inhabitants = 8.43 %** of the legal population 2023.
+- **All 1,476 licence QPV codes and all 1,258 club QPV codes are found in R5** (validation checks); every QPV of
+  the study area has at least one licence. No QPV spans two départements, so département sums are exact.
+- **Reference dates differ:** QPV population at 1 January 2020 (mainland) / 2021 (Guadeloupe, Martinique, Guyane,
+  La Réunion); total population = legal population 2023. A ~3-year gap has a small effect on a share; stated on the page.
+- Results (all federations in territorial scope): licences held by QPV residents **4.30 %**, active clubs and EPA
+  located in a QPV **4.00 %**, against **8.43 %** of the population. 99 of 100 départements are below parity for licences.
+
 ## 11. Lines for the Data & Limits page (Phase 6)
 
 - A licence is not a person: one person can hold several licences.
@@ -170,7 +182,14 @@ Département codes: 100 in geocoded licences (`01`–`95` with `2A`/`2B`, `971`�
 - Maps use geocoded licences (98.75 %); abroad, Mayotte, COM and unallocated licences (1.25 %) are in the national total only.
 - Overseas départements 971–974 are shown in a table, not on the map.
 - Disability: Handisport + Sport Adapté only; a lower bound, as many disabled athletes hold ordinary licences.
-- QPV: 2024 QPV list; shares only (no QPV population).
+- QPV: 2024 QPV list. Benchmark = INSEE QPV population (2020 mainland, 2021 overseas) ÷ legal population 2023;
+  the dates differ by about three years. A club located in a QPV can serve people living elsewhere.
+- Seniors: the share of licences held by people aged 60+ partly reflects each département's age structure (no
+  population by age in our sources): not a participation rate.
+- Disability map: colour scale capped at the second-highest département so that Lozère (an outlier) does not wash
+  out the map; Lozère is shown in the darkest colour and named in the caption.
+- Women: shares = women ÷ (women + men); sex is reported for every licence. The federation ranking is national and
+  includes school sport; the football map uses geocoded licences.
 - Population: INSEE legal population 2023 (population municipale), COG 2026; licence communes mapped from COG 2024.
 - Our national total uses INJEP's revised 2023 figures (2 federations differ from the first publication).
 - Single year (2023): no trends.

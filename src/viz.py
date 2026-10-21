@@ -20,9 +20,7 @@ HIGHLIGHT = "#eb6834"   # outline of the selected département (a different hue 
 REFERENCE = "#7a7974"   # reference line (France average)
 COLORBAR = dict(title=dict(text=f"licences per<br>{ui.fmt_num(10_000)} inh.", side="top"), thickness=12, len=0.7,
                 tickformat=",")
-# Horizontal colour bar under a map, so that it does not take width from a square map.
-COLORBAR_BELOW = dict(title=dict(text=ui.RATE_UNIT, side="top"), orientation="h", thickness=12, len=0.6,
-                      x=0.5, xanchor="center", y=0, yanchor="top", tickformat=",")
+WOMEN, MEN = "#eb6834", "#2a78d6"  # categorical slots 2 and 1 (validated pair), always in this order
 # Mercator keeps France's real proportions (roughly square); the default equirectangular projection
 # stretches it ~1.4× in width at this latitude.
 GEOS = dict(fitbounds="locations", visible=False, bgcolor="rgba(0,0,0,0)", projection_type="mercator")
@@ -50,21 +48,29 @@ def _hover(df: pd.DataFrame, name_col: str) -> tuple[pd.DataFrame, str]:
     return custom, template
 
 
-def departement_map(df: pd.DataFrame, geojson: dict, selected: str, title: str, z_range: tuple[float, float],
-                    height: int = 620, show_scale: bool = True, scale_below: bool = False) -> go.Figure:
-    """Choropleth of départements by rate; the selected one is outlined.
+def _colorbar(title: str, below: bool, suffix: str) -> dict:
+    """Vertical colour bar beside a map, or horizontal under it (so it does not take width from a square map)."""
+    if below:
+        return dict(title=dict(text=title, side="top"), orientation="h", thickness=12, len=0.6, x=0.5,
+                    xanchor="center", y=0, yanchor="top", tickformat=",", ticksuffix=suffix)
+    return dict(title=dict(text=title, side="top"), thickness=12, len=0.7, tickformat=",", ticksuffix=suffix)
 
-    `z_range` fixes the colour scale so that the main map and the Île-de-France zoom use the same colours.
-    `scale_below` puts the colour bar horizontally under the map (used for the square main map).
-    `customdata[4]` holds the département code (read back when the user clicks the map).
+
+def departement_map(df: pd.DataFrame, geojson: dict, selected: str, title: str, z_range: tuple[float, float],
+                    colorbar_title: str = ui.RATE_UNIT, tick_suffix: str = "", height: int = 620,
+                    show_scale: bool = True, scale_below: bool = False) -> go.Figure:
+    """Choropleth of départements for any indicator; the selected département is outlined.
+
+    `df` columns: dep, value (colour), hover (pre-formatted HTML text).
+    `z_range` fixes the colour scale so that the main map, the Île-de-France zoom and the overseas maps match.
+    `customdata[1]` holds the département code (read back when the user clicks the map).
     """
-    custom, template = _hover(df, "dep_name")
-    custom["dep"] = df["dep"].values
     fig = go.Figure(go.Choropleth(
-        geojson=geojson, featureidkey="properties.code", locations=df["dep"], z=df["rate"],
-        zmin=z_range[0], zmax=z_range[1], customdata=custom, hovertemplate=template, colorscale=COLORSCALE,
+        geojson=geojson, featureidkey="properties.code", locations=df["dep"], z=df["value"],
+        zmin=z_range[0], zmax=z_range[1], customdata=df[["hover", "dep"]],
+        hovertemplate="%{customdata[0]}<extra></extra>", colorscale=COLORSCALE,
         marker_line_color="white", marker_line_width=0.5, showscale=show_scale,
-        colorbar=COLORBAR_BELOW if scale_below else COLORBAR,
+        colorbar=_colorbar(colorbar_title, scale_below, tick_suffix),
     ))
     sel = df[df["dep"] == selected]
     if not sel.empty:
@@ -160,3 +166,82 @@ def commune_map(df: pd.DataFrame, geojson: dict, title: str) -> go.Figure:
     fig.update_geos(**GEOS)
     fig.update_layout(dragmode=False)
     return _layout(fig, title, 520)
+
+
+def qpv_scatter(df: pd.DataFrame, share_col: str, selected: str, title: str, y_label: str) -> go.Figure:
+    """Départements: population share in QPV (x) vs a census share in QPV (y); dashed line = parity."""
+    df = df[df["pop_share"] > 0]
+    hover = "%{customdata[0]}<extra></extra>"
+    fig = go.Figure(go.Scatter(
+        x=df["pop_share"] * 100, y=df[share_col] * 100, mode="markers", marker=dict(size=9, color=CONTEXT),
+        customdata=df[["hover"]], hovertemplate=hover, showlegend=False,
+    ))
+    sel = df[df["dep"] == selected]
+    if not sel.empty:
+        fig.add_trace(go.Scatter(
+            x=sel["pop_share"] * 100, y=sel[share_col] * 100, mode="markers+text",
+            marker=dict(size=14, color=BAR), text=[f"<b>{n}</b>" for n in sel["dep_name"]],
+            textposition=["middle left" if x > df["pop_share"].max() * 50 else "middle right"
+                          for x in sel["pop_share"]],
+            customdata=sel[["hover"]], hovertemplate=hover, showlegend=False,
+        ))
+    top = max(df["pop_share"].max(), df[share_col].max()) * 100 * 1.05
+    fig.add_trace(go.Scatter(x=[0, top], y=[0, top], mode="lines", line=dict(dash="dash", color=REFERENCE),
+                             hoverinfo="skip", showlegend=False))
+    fig.add_annotation(x=top * 0.82, y=top * 0.82, text="parity", showarrow=False, yshift=12,
+                       font=dict(color=REFERENCE))
+    fig.update_xaxes(title_text="share of the population living in a QPV (%)", range=[0, top], ticksuffix=" %")
+    fig.update_yaxes(title_text=y_label, range=[0, top], ticksuffix=" %")
+    return _layout(fig, title, 460)
+
+
+def share_bars(df: pd.DataFrame, reference: float, focus: str | None, title: str, x_label: str) -> go.Figure:
+    """Horizontal bars of a share (0-1) by federation, 0-100 % axis, reference line; `focus` code in orange."""
+    df = df.iloc[::-1]
+    colors = [HIGHLIGHT if c == focus else BAR for c in df["code"]]
+    fig = go.Figure(go.Bar(
+        x=df["share"] * 100, y=df["name"], orientation="h", marker_color=colors,
+        text=df["share"].map(ui.fmt_pct), textposition="outside", cliponaxis=False,
+        customdata=df[["hover"]], hovertemplate="%{customdata[0]}<extra></extra>",
+    ))
+    fig.add_vline(x=reference * 100, line_dash="dot", line_color=REFERENCE,
+                  annotation_text=f"all federations {ui.fmt_pct(reference)}", annotation_position="top")
+    fig.update_xaxes(title_text=x_label, range=[0, 112], ticksuffix=" %", showgrid=False)
+    fig.update_yaxes(title_text=None, automargin=True)
+    fig.update_layout(bargap=0.3)
+    return _layout(fig, title, 120 + 26 * len(df))
+
+
+def pyramid(df: pd.DataFrame, title: str) -> go.Figure:
+    """Age pyramid: women to the left (negative bars), men to the right; ticks show absolute counts."""
+    women = df[df["sex"] == "F"].sort_values("age_order")
+    men = df[df["sex"] == "H"].sort_values("age_order")
+    fig = go.Figure()
+    for part, sign, name, color in [(women, -1, "Women", WOMEN), (men, 1, "Men", MEN)]:
+        fig.add_trace(go.Bar(
+            y=part["age_band"].map(ui.age_label), x=sign * part["licences"], orientation="h", name=name,
+            marker_color=color,
+            customdata=part["licences"].map(ui.fmt_num),
+            hovertemplate=f"<b>{name}, %{{y}}</b><br>%{{customdata}} licences<extra></extra>",
+        ))
+    top = df["licences"].max()
+    ticks = _nice_ticks(top)
+    fig.update_xaxes(tickvals=[-t for t in ticks[::-1]] + ticks[1:],
+                     ticktext=[ui.fmt_num(t) for t in ticks[::-1]] + [ui.fmt_num(t) for t in ticks[1:]],
+                     range=[-top * 1.08, top * 1.08], title_text="licences (women ← · → men)")
+    fig.update_yaxes(title_text="age band", categoryorder="array",
+                     categoryarray=women["age_band"].map(ui.age_label).tolist())
+    fig.update_layout(barmode="overlay", bargap=0.1, legend=dict(orientation="h", y=1.02, x=0, yanchor="bottom"))
+    _layout(fig, title, 560)
+    fig.update_layout(margin=dict(l=0, r=0, t=90, b=0))
+    return fig
+
+
+def _nice_ticks(top: float, n: int = 3) -> list[float]:
+    """0 and up to n round steps (1, 2 or 5 × 10^k) below `top`."""
+    if top <= 0:
+        return [0]
+    raw = top / n
+    mag = 10 ** int(f"{raw:e}".split("e")[1])
+    step = next(m * mag for m in (1, 2, 5, 10) if m * mag >= raw)
+    return [i * step for i in range(int(top // step) + 1)]

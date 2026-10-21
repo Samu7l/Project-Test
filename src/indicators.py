@@ -75,3 +75,67 @@ def national_summary(fed: pd.DataFrame) -> NationalSummary:
         active_structures=int(fed["clubs_actifs_total"].sum()),
         federations=int((fed["lic_total"] > 0).sum()),
     )
+
+
+# --- QPV ---------------------------------------------------------------------------------------------------------
+def qpv_shares(lic_dep_fed: pd.DataFrame, clubs_dep_fed: pd.DataFrame, pop_dep: pd.DataFrame,
+               pop_qpv: pd.DataFrame, codes: list[str]) -> pd.DataFrame:
+    """By département: share of licences held by QPV residents, of active clubs/EPA located in a QPV, and of the
+    population living in a QPV. Shares are fractions (0-1).
+
+    Denominators exclude records with no QPV information (`NR`, the département-only federations).
+    """
+    lic = lic_dep_fed[lic_dep_fed["code"].isin(codes)].groupby("dep")[["qpv_in", "qpv_allocated"]].sum()
+    clubs = (clubs_dep_fed[clubs_dep_fed["code"].isin(codes)]
+             .groupby("dep")[["actifs_qpv_in", "actifs_qpv_allocated"]].sum())
+    qpv_pop = pop_qpv.groupby("dep")["population"].sum().rename("qpv_population")
+    df = (pop_dep.set_index("dep").join([lic, clubs, qpv_pop]).fillna(0).reset_index())
+    df["lic_share"] = df["qpv_in"] / df["qpv_allocated"]
+    df["club_share"] = df["actifs_qpv_in"] / df["actifs_qpv_allocated"]
+    df["pop_share"] = df["qpv_population"] / df["population"]
+    return df
+
+
+def qpv_national(df: pd.DataFrame) -> dict[str, float]:
+    """National shares from the département table (sums of numerators over sums of denominators)."""
+    return {
+        "lic_share": df["qpv_in"].sum() / df["qpv_allocated"].sum(),
+        "club_share": df["actifs_qpv_in"].sum() / df["actifs_qpv_allocated"].sum(),
+        "pop_share": df["qpv_population"].sum() / df["population"].sum(),
+        "qpv_licences": float(df["qpv_in"].sum()),
+        "qpv_clubs": float(df["actifs_qpv_in"].sum()),
+        "qpv_population": float(df["qpv_population"].sum()),
+    }
+
+
+# --- Shares by département and by federation -----------------------------------------------------------------------
+def departement_shares(lic_dep_fed: pd.DataFrame, pop_dep: pd.DataFrame, codes: list[str],
+                       numerator: str, denominator: str) -> pd.DataFrame:
+    """By département: numerator / denominator summed over the given federations (e.g. f / (f + h)).
+
+    `denominator` may be a column name or 'f+h'. Share is NaN where the denominator is 0.
+    """
+    sub = lic_dep_fed[lic_dep_fed["code"].isin(codes)].assign(**{"f+h": lambda d: d["f"] + d["h"]})
+    sums = sub.groupby("dep")[[numerator, denominator]].sum()
+    df = pop_dep.set_index("dep").join(sums).fillna({numerator: 0, denominator: 0}).reset_index()
+    df["share"] = (df[numerator] / df[denominator]).where(df[denominator] > 0)
+    df["rank"] = df["share"].rank(ascending=False, method="min")
+    return df.rename(columns={numerator: "num", denominator: "den"})
+
+
+def women_by_federation(fed: pd.DataFrame, min_licences: int = 1_000) -> pd.DataFrame:
+    """Federations with at least `min_licences` licences, ranked by women's share F / (F + H) (national, all places)."""
+    df = fed[fed["lic_total"] >= min_licences].copy()
+    df["share"] = df["lic_f"] / (df["lic_f"] + df["lic_h"])
+    return df.sort_values("share").reset_index(drop=True)
+
+
+def pyramid(pyr: pd.DataFrame, codes: list[str]) -> pd.DataFrame:
+    """Licences by sex × age band for the given federations (age not reported kept in its own band 'NR')."""
+    return (pyr[pyr["code"].isin(codes)].groupby(["sex", "age_band", "age_order"], as_index=False)["licences"].sum()
+            .sort_values(["sex", "age_order"]))
+
+
+def all_codes(fed: pd.DataFrame) -> list[str]:
+    """Every federation that issued licences (national views: Women ranking, Explore)."""
+    return fed.loc[fed["lic_total"] > 0, "code"].tolist()

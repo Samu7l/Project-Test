@@ -3,8 +3,6 @@ import streamlit as st
 
 from src import data, indicators, ui, viz
 
-IDF_REGION = "11"  # Île-de-France: small départements, invisible at national scale → zoom map
-
 fed = data.table("federations")
 pop_dep = data.table("population_dep")
 federation = st.session_state["federation"]
@@ -15,11 +13,6 @@ rates = indicators.departement_rates(data.table("lic_dep_fed"), pop_dep, codes)
 france = indicators.national_rate(rates)
 mainland, overseas = rates[~rates["is_overseas"]], rates[rates["is_overseas"]]
 top, bottom = mainland.iloc[0], mainland.iloc[-1]
-z_range = (rates["rate"].min(), rates["rate"].max())  # one colour scale for all maps (overseas included)
-MAYOTTE = "976"  # outside the geocoding scope: drawn in gray, no data
-# The map column is ~730 px wide on a 1440 px laptop screen: 780 px = ~40 px title + ~670 px map + ~70 px colour bar,
-# so the map area itself is roughly square.
-MAIN_MAP_HEIGHT = 780
 
 st.title("Territories")
 st.markdown(
@@ -29,52 +22,11 @@ st.markdown(
 )
 
 
-def select_from_map(key: str) -> None:
-    """Map click -> shared département. Runs as a callback, before the sidebar is drawn again."""
-    points = st.session_state[key]["selection"]["points"]
-    if not points:
-        return
-    point = points[0]
-    dep = point.get("location") or (point.get("customdata") or [None] * 5)[4]
-    if dep in set(pop_dep["dep"]):
-        ui.select_departement(dep)
-
-
-# --- Département map (mainland) + Île-de-France zoom --------------------------------------------------------------
-geojson = data.departements_geojson()
-selected = st.session_state["dep"]
-col_map, col_zoom = st.columns([3, 1])
-with col_map:
-    st.plotly_chart(
-        viz.departement_map(mainland, geojson, selected,
-                            ui.contrast_title(top["dep_name"], top["rate"], bottom["dep_name"], bottom["rate"]),
-                            z_range, height=MAIN_MAP_HEIGHT, scale_below=True),
-        key="dep_map", on_select=lambda: select_from_map("dep_map"), selection_mode="points", width="stretch",
-    )
-with col_zoom:
-    idf = mainland[mainland["reg"] == IDF_REGION]
-    st.plotly_chart(
-        viz.departement_map(idf, geojson, selected, "Zoom: Île-de-France", z_range, height=340, show_scale=False),
-        key="idf_map", on_select=lambda: select_from_map("idf_map"), selection_mode="points", width="stretch",
-    )
-    below = (overseas["rate"] < france).sum()
-    st.markdown(f"**Overseas: {below} of {len(overseas)} below the France average**")
-    om_geojson = data.overseas_geojson()
-    grid = st.columns(2)
-    for i, row in enumerate(overseas.sort_values("dep").itertuples()):
-        with grid[i % 2]:
-            st.plotly_chart(
-                viz.departement_map(overseas[overseas["dep"] == row.dep], om_geojson, selected,
-                                    f"{row.dep_name}<br>{ui.fmt_rate(row.rate)}", z_range, height=170,
-                                    show_scale=False),
-                key=f"om_map_{row.dep}", on_select=lambda k=f"om_map_{row.dep}": select_from_map(k),
-                selection_mode="points", width="stretch",
-            )
-    with grid[len(overseas) % 2]:
-        st.plotly_chart(viz.no_data_map(om_geojson, MAYOTTE, "Mayotte<br>no data",
-                                        "Mayotte: no data (outside the geocoding scope)", height=170),
-                        width="stretch")
-    st.caption("Same colour scale as the main map. Mayotte (gray) is outside the geocoding scope.")
+# --- Département maps: mainland, Île-de-France zoom, overseas --------------------------------------------------------
+ui.france_maps(ui.rate_frame(rates), ui.contrast_title(top["dep_name"], top["rate"], bottom["dep_name"], bottom["rate"]),
+               key="terr", colorbar_title=ui.RATE_UNIT,
+               overseas_heading=f"Overseas: {(overseas['rate'] < france).sum()} of {len(overseas)} below the France "
+                                "average")
 ui.source_caption(ui.SOURCE_POPULATION, "Mainland France; click a département to select it (or use the sidebar).")
 
 # --- Overseas table ---------------------------------------------------------------------------------------------
@@ -107,7 +59,7 @@ rated = communes[communes["above_threshold"]]
 st.header(f"Inside {dep_row['dep_name']} ({dep})")
 m1, m2, m3 = st.columns(3)
 gap = dep_row["rate"] - france
-delta, delta_format = ui.metric_delta(gap, dep_row["rate"])
+delta, delta_format = ui.metric_delta(gap, ui.rate_decimals(dep_row["rate"]))
 m1.metric(ui.RATE_UNIT.capitalize(), ui.fmt_rate(dep_row["rate"]), delta=delta, format=delta_format,
           delta_description="vs France", delta_color="normal")
 m2.metric("Rank among 100 départements", f"{dep_row['rank']} / 100")

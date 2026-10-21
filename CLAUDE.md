@@ -93,7 +93,8 @@ only); département sum = national geocoded total (tested); commune join rate wi
 ## Project structure
 ```
 app.py                    # entry point, st.navigation, sidebar
-pages/                    # 1_Hook, 2_Territories, 3_QPV, 4_Women, 5_Seniors, 6_Disability, 7_Explore, 8_Data_and_Limits
+app_pages/                # 1_Hook, 2_Territories, 3_QPV, 4_Women, 5_Seniors, 6_Disability, 7_Explore, 8_Data_and_Limits
+                          # (not `pages/`: Streamlit would auto-discover it and bypass st.navigation on direct links)
 src/
   sources/                # licences.py (reuse), clubs.py, federations.py, population.py (geo.api), geometry.py (GeoJSON)
   geo.py                  # reuse: commune codes (old/merged) → current commune → département → region
