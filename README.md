@@ -116,6 +116,7 @@ How our structure maps to the course's recommended layout. The roles are the sam
 ##
 
 - Lien de la démo : https://youtu.be/UZ9jN3MVxK0
+- Lien du dashboard : https://stapp26-sport-for-all-tczglpuc5s4pnarjj2csfb.streamlit.app/
 
 
 Developed with AI assistance (Claude Code). All data choices, validation and conclusions were reviewed by the author.
