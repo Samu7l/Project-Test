@@ -49,63 +49,63 @@ known = pyr[pyr["age_band"] != "NR"]
 under_20 = known.loc[known["age_order"] <= 3, "licences"].sum() / known["licences"].sum()
 
 st.title("Implications")
-st.markdown("What the 2023 census shows, where public effort could be targeted, and what it cannot tell us.")
+st.markdown("What the 2023 census shows : Where public effort could be targeted but also what it cannot tell us ; it's only assumptions.")
 
 st.header("Five takeaways")
 st.markdown(
     f"""
-1. **Territories** — In mainland France, {top['dep_name']} counts {ui.fmt_rate(top['rate'])} licences per
+1. **Territories** : In mainland France, {top['dep_name']} counts {ui.fmt_rate(top['rate'])} licences per
    {ui.fmt_num(indicators.PER)} inhabitants, **{ui.fmt_num(top['rate'] / bottom['rate'], 1)} times**
    {bottom['dep_name']} ({ui.fmt_rate(bottom['rate'])}); {overseas_below} of {len(overseas)} overseas départements are
    below the France average ({ui.fmt_rate(france)}).
-2. **Priority neighbourhoods** — QPV residents are {ui.fmt_pct(nat_qpv['pop_share'])} of the population but hold
+2. **Priority neighbourhoods** : QPV residents are {ui.fmt_pct(nat_qpv['pop_share'])} of the population but hold
    **{ui.fmt_pct(nat_qpv['lic_share'])}** of licences; {ui.fmt_pct(nat_qpv['club_share'])} of active clubs and EPA are
    located in a QPV.
-3. **Women** — Women hold {ui.fmt_pct(summary.women_share)} of all licences and only **{ui.fmt_pct(foot_share)}** in
+3. **Women** : Women hold {ui.fmt_pct(summary.women_share)} of all licences and only **{ui.fmt_pct(foot_share)}** in
    football, the largest federation. The gap is widest among young adults: per head, girls aged 10–14 hold
    {ui.fmt_num(ratio_young * 100)} licences per 100 held by boys, women aged 20–24 hold
    **{ui.fmt_num(ratio_adult * 100)}** per 100 held by men, and the lowest value is at
    {ui.age_label(widest['age_band'])} ({ui.fmt_num(widest['ratio'] * 100)}){higher_again} (age groups compared in
    2023, school sport excluded).
-4. **Seniors** — France counts **{ui.fmt_rate(senior_rate)}** licences per {ui.fmt_num(indicators.PER)} inhabitants
+4. **Seniors** : France counts **{ui.fmt_rate(senior_rate)}** licences per {ui.fmt_num(indicators.PER)} inhabitants
    aged 60+, from {ui.fmt_rate(sen_main.iloc[-1]['rate'])} in {sen_main.iloc[-1]['dep_name']} to
    {ui.fmt_rate(sen_main.iloc[0]['rate'])} in {sen_main.iloc[0]['dep_name']} (mainland France).
-5. **Disability** — The two disability federations count **{ui.fmt_rate(dis_france)}** licences per
-   {ui.fmt_num(indicators.PER)} inhabitants, a lower bound of disabled people's organised sport.
+5. **Disability** : The two disability federations count **{ui.fmt_rate(dis_france)}** licences per
+   {ui.fmt_num(indicators.PER)} inhabitants, we can consider it as a lower bound of disabled people's sport.
 """
 )
 
 st.header("Where public effort could be targeted")
 st.markdown(
     f"""
-- **Priority neighbourhoods.** The data suggests that QPV residents hold about **{ui.fmt_num(nat_qpv['lic_share'] /
+- **Priority neighbourhoods :** The data suggests that QPV residents hold about **{ui.fmt_num(nat_qpv['lic_share'] /
   nat_qpv['pop_share'], 2)}** of the licences their population share would imply, and clubs are rarer there.
   Club creation or support for existing clubs in or near QPV may be a lever worth examining.
-- **Women in football.** The data suggests a large reserve: women hold {ui.fmt_pct(foot_share)} of football
+- **Women in football :** The data suggests a large reserve: women hold {ui.fmt_pct(foot_share)} of football
   licences nationally, and less where the share is lowest ({', '.join(f"{r.dep_name} {ui.fmt_pct(r.share)}"
   for r in foot_low.itertuples())}).
-- **{bottom['dep_name']}.** The data suggests a combined gap: the lowest licence rate in mainland France
+- **{bottom['dep_name']} :** The data suggests a combined gap: the lowest licence rate in mainland France
   ({ui.fmt_rate(bottom['rate'])} against {ui.fmt_rate(france)}), with {ui.fmt_pct(qpv_bottom['pop_share'])} of its
   population in QPV and {ui.fmt_pct(qpv_bottom['lic_share'])} of its licences held by QPV residents.
 
-These are signals from one year of licence data, not evaluations: local knowledge (facilities, school sport, informal
-practice) is needed before acting.
+These are signals from only one year of licence data, they are clearly not evaluations ; local knowledge such as facilities, school sport, informal
+practice must be considered before acting.
 """
 )
 
 st.header("What the data cannot say")
 st.markdown(
     f"""
-- **How many people do sport.** A licence is not a person, and the census misses non-federated practice (gyms,
-  running alone, informal sport, physical education at school).
-- **Why.** The census has no income, facilities or travel time: the gaps shown are descriptive, not causal.
-- **The QPV gap is probably understated.** QPV populations are younger: INSEE reports that
+- **How many people do sport? :** As said multiple times, a licence is not a person, and the census misses all the non-federated practice like gyms(musculation),
+  running alone, informal sport, and physical education at school.
+- **Why?** The census has no data on income, facilities or travel time so the gaps shown are ONLY descriptive, not causal.
+- **The QPV gap is probably understated :** QPV populations are younger: INSEE reports that
   {ui.fmt_pct(registry.QPV_UNDER_25, 0)} of QPV residents are under 25, against {ui.fmt_pct(registry.URBAN_UNDER_25, 0)}
-  in the surrounding urban areas (Insee Première n° 2008, 2024). Since people under 20 hold
+  in the surrounding urban areas (Insee Première n° 2008, 2024). So as people under 20 hold
   {ui.fmt_pct(under_20)} of licences, a benchmark adjusted for age would probably make the QPV gap larger.
-- **Participation of disabled people.** There is no disabled population by département in our sources: disability
-  figures are lower bounds per inhabitant, not participation rates.
-- **Trends.** 2023 only.
+- **Participation of disabled people :** As there is no disabled population by département in our sources ; disability
+  figures are only lower bounds per inhabitant, not to be considered  as participation rates.
+- **Trends : ** We only have data for 2023, we can improve the analysis with more recent data or more data (from 2016 to 2023 for example).
 """
 )
 ui.source_caption(ui.SOURCE_POPULATION, "INSEE QPV 2024 population; Insee Première n° 2008 (quoted).")

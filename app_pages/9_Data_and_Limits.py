@@ -19,7 +19,7 @@ st.header("Sources")
 sources = pd.DataFrame(registry.SOURCES, columns=registry.COLUMNS)
 st.dataframe(sources, hide_index=True, width="stretch",
              column_config={"Link": st.column_config.LinkColumn("Link", display_text="open")})
-st.caption("Licence Ouverte = Etalab Open Licence. Raw files are downloaded by `python -m src.build`; the app reads "
+st.caption("S = Sources Principales, R = Données de Références,  G = Géographie, V = Références de Validation, Q = Chiffres Cités(Quoted) ,Licence Ouverte = Etalab Open Licence. Raw files are downloaded by `python -m src.build`; the app reads "
            "only the processed tables.")
 
 st.header("Pipeline")

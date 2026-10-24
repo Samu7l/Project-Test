@@ -12,8 +12,8 @@ mainland = rates[~rates["is_overseas"]]
 main_top, main_bottom = mainland.iloc[0], mainland.iloc[-1]
 lowest = rates.iloc[-1]
 
-st.title("Sport for all?")
-st.markdown("#### Territorial and social inequalities in organised sport in France, 2023")
+st.title("Is Sport for all?")
+st.markdown("#### Subject: Territorial and social inequalities in organised sport in France, 2023")
 
 c1, c2, c3, c4 = st.columns(4)
 c1.metric("Annual licences", ui.fmt_num(summary.licences),
@@ -51,7 +51,7 @@ ui.source_caption(ui.SOURCE_POPULATION, "Without school sport (UNSS, USEP) and f
                   "only. The France average includes the overseas départements.")
 
 st.info(
-    f"**A licence is not a person.** One person can hold several licences in different federations, so "
+    f"**Be careful: a licence is not a person.** One person can hold several licences in different federations, so "
     f"{ui.fmt_num(summary.licences)} licences does not mean {ui.fmt_num(summary.licences)} people. "
     f"The national total includes school sport (UNSS, USEP: {ui.fmt_num(summary.school_licences)} licences); "
     "territorial comparisons leave it out because those licences are recorded at the school, not at home.",
@@ -60,10 +60,10 @@ st.info(
 
 st.markdown(
     """
-**What this app looks at**
-- **Territories**: where are licences per inhabitant highest and lowest, from départements down to communes?
-- **Priority neighbourhoods (QPV)**, **women**, **seniors** and **disability**: who is under-represented, and where?
-- **Implications & limits**: where public effort could be targeted, and what the data cannot say.
+**What will this streamlit app looks at**
+- **Territories**: Where are licences per inhabitant highest and lowest, from départements down to communes?
+- **Priority neighbourhoods (QPV = Quartier prioritaire de la politique de la ville)**, **women**, **seniors** and **disability**: Who is under-represented, and where?
+- **Implications & limits**: Where can public effort be targeted to ensure equitable access to sport for everyone, and what the data cannot say.
 """
 )
 st.page_link("app_pages/2_Territories.py", label="Start with the territories map", icon="🗺️")

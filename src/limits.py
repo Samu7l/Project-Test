@@ -18,11 +18,11 @@ def limits(fed: pd.DataFrame, rates: pd.DataFrame, validation: pd.DataFrame) -> 
     revised = validation.loc[validation["check"].str.startswith("Gap vs first publication"), "observed"]
     dep_gap = validation.loc[validation["check"].str.startswith("Département totals vs INJEP"), "observed"]
     return [
-        ("Licences, not people", "A licence is not a person: one person can hold several licences in different "
-         "federations. All figures count licences."),
+        ("Licences are not people ", "A licence is not a person, one person can hold several licences in different "
+         "federations. All our figures count licences."),
         ("School sport", f"UNSS and USEP ({ui.fmt_num(school)} licences) are left out of every map and territorial "
          "indicator: their licences are recorded at the school's address, not where the pupil lives, so they would "
-         "distort comparisons between places. They are kept in the national total, the women's ranking and Explore."),
+         "distort comparisons between places. They are kept in the national total, the women's ranking and Explore Section."),
         ("Département-only federations", f"Défense, Maccabi and Police ({ui.fmt_num(dept_only)} licences) report "
          "by département only, with no commune or QPV: they are left out of all territorial views (so that "
          "département and commune views count the same licences) and kept in national totals."),
@@ -30,8 +30,8 @@ def limits(fed: pd.DataFrame, rates: pd.DataFrame, validation: pd.DataFrame) -> 
          f"overseas collectivities or not allocated ({ui.fmt_pct(1 - geocoded, 2)}) are in the national total only."),
         ("Overseas", "Guadeloupe, Martinique, Guyane and La Réunion are shown in small maps next to the main map, on "
          "the same colour scale. Mayotte is outside the geocoding scope (gray, no data)."),
-        ("Small numbers", f"Commune rates are shown only from {ui.MIN_POP_LABEL} inhabitants; Paris, Lyon and "
-         "Marseille are shown as single communes."),
+        ("Small numbers", f"Commune rates are shown only from {ui.MIN_POP_LABEL} inhabitants, a small city with a lot of licences would break the scale otherwise; Moreover, Paris, Lyon and "
+         "Marseille are shown as single communes even though they are large cities with multiple districts."),
         ("Population", "INSEE legal population 2023 (population municipale), geography COG 2026; licence communes "
          "(COG 2024) are mapped to current communes."),
         ("QPV", "2024 QPV list. Benchmark = INSEE QPV population (1/1/2020 mainland, 1/1/2021 overseas) ÷ legal "
@@ -51,12 +51,12 @@ def limits(fed: pd.DataFrame, rates: pd.DataFrame, validation: pd.DataFrame) -> 
         ("Explore maps", "Women's and men's maps each have their own colour scale (compare geography, not levels); "
          "scales are capped at the second-highest département when one département stands far above. No maps for "
          "school sport. Small federations rest on a few licences per département."),
-        ("Disability", f"Only {' and '.join(disability['name'])}: a lower bound, as many disabled athletes hold "
+        ("Disability", f"Only {' and '.join(disability['name'])}: so it's clearly a lower bound : many disabled athletes hold "
          "ordinary licences and the census does not record disability. No disabled population by département: "
          "never a share of disabled people. The map's colour scale is capped at the second-highest département; "
          "the link with medico-social establishments (DREES) is a hypothesis."),
         ("Published figures", f"Our national figures equal INJEP's revised 2023 results (July 2025); gap with the "
          f"first publication: {revised.iloc[0] if len(revised) else '—'}. Département totals differ slightly from "
          f"INJEP's tables, which re-allocate non-response (largest gap {dep_gap.iloc[0] if len(dep_gap) else '—'})."),
-        ("Single year", "2023 only: no trend can be read from this app."),
+        ("Single year", "As said previously, we only have data for 2023: so no trends can be read from this app, we can improve the analysis with more recent data or more data (from 2016 to 2023 for example)."),
     ]
