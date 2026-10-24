@@ -111,3 +111,6 @@ How our structure maps to the course's recommended layout. The roles are the sam
 - Rates by sex and age use census 2023 estimates; disability counts are a lower bound.
 - The QPV benchmark uses QPV populations from 2020/2021; QPV residents are younger, so the gap is probably understated.
 - 2023 only: no trends. Full list on the Data & Limits page.
+
+
+Developed with AI assistance (Claude Code). All data choices, validation and conclusions were reviewed by the author.
