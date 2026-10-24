@@ -89,6 +89,21 @@ docs/data_audit.md     audit of every source
 tests/                 pytest
 ```
 
+## Architecture
+
+How our structure maps to the course's recommended layout. The roles are the same; only the names differ.
+
+| Course layout | This project | Role |
+|---|---|---|
+| `app.py` | `app.py` | Entry point: page config, `st.navigation`, shared sidebar filters |
+| `sections/` | `app_pages/` (`1_Hook.py` … `9_Data_and_Limits.py`) | One file per story section. Not named `pages/`: Streamlit would auto-discover that folder and bypass `st.navigation` on direct links |
+| `utils/io.py` | `src/data.py` (app: cached loaders of the processed files, `st.cache_data`) and `src/sources/` (build: one reader per raw source, plus `registry.py`, the list of datasets) | Loading data |
+| `utils/prep.py` | `src/build.py` (raw → processed tables), `src/geo.py` (commune code harmonisation), `src/indicators.py` (rates, shares, rankings), `src/validate.py` (33 checks), `src/limits.py` | Cleaning, feature engineering, validation |
+| `utils/viz.py` | `src/viz.py` (Plotly figures) and `src/ui.py` (Streamlit components: maps block, tables, number formatting, sidebar) | Charts and reusable UI |
+| `data/` | `data/raw/` (downloaded by the build, not shipped) and `data/processed/` (parquet + simplified GeoJSON, the only data the app reads) | Data |
+| `assets/` | none | No static assets: map outlines are data, in `data/processed/geo/` |
+| — | `tests/`, `docs/data_audit.md`, `make_zip.sh` | Tests, source audit, deliverable script |
+
 ## Main limits
 
 - A **licence is not a person**: one person can hold several licences.
